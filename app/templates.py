@@ -74,6 +74,7 @@ def get_index_template(api_token):
                 <input type="file" id="csv-input" accept=".csv" aria-label="Escolher CSV com e-mails (opcional)">
                 <input type="file" id="attachment-input" multiple accept=".jpg,.jpeg,.png,.pdf" aria-label="Escolher anexos">
                 <button type="button" id="attach-button">ANEXAR IMAGEM COM/SEM LINK</button>
+                <button type="button" id="preview-button" style="background: linear-gradient(45deg, #ff9a28, #ffcd3c);">PRÉ-VISUALIZAR</button>
                 <button type="submit">ENVIAR SINAL</button>
                 <div id="progress-bar"></div>
             </form>
@@ -129,6 +130,20 @@ def get_index_template(api_token):
             const attachmentInput = document.getElementById('attachment-input');
             const progressBar = document.getElementById('progress-bar');
             const logArea = document.getElementById('log-area');
+            const previewButton = document.getElementById('preview-button');
+
+            previewButton.addEventListener('click', () => {
+                const content = tinymce.get('message').getContent();
+                if (content) {
+                    const previewWindow = window.open('', '_blank');
+                    previewWindow.document.write(content);
+                    previewWindow.document.close();
+                    log("Pré-visualização gerada em nova aba.");
+                } else {
+                    showStatus("Nada para pré-visualizar.", false);
+                    log("Tentativa de pré-visualizar com conteúdo vazio.", 'error');
+                }
+            });
 
             function log(message, type = 'info') {
                 const log = document.createElement('div');
