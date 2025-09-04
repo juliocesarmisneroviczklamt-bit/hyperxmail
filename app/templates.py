@@ -47,7 +47,11 @@ def get_index_template(api_token):
             .log-success { color: #00ffcc; }
             .log-error { color: #ff3366; }
             #attachment-input { display: none; }
-            @media (max-width: 480px) { .container { padding: 20px; } input, textarea, button { font-size: 14px; } }
+            .template-bar { display: flex; gap: 10px; margin-bottom: 10px; }
+            .template-bar select { flex-grow: 1; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(0, 255, 255, 0.5); border-radius: 8px; color: #fff; padding: 12px; font-size: 16px; outline: none; }
+            .template-bar select option { background: #1a1a2e; color: #fff; }
+            .template-bar button { width: auto; padding: 0 20px; font-size: 14px; background: linear-gradient(45deg, #8a2be2, #4b0082); }
+            @media (max-width: 480px) { .container { padding: 20px; } input, textarea, button { font-size: 14px; } .template-bar { flex-direction: column; } }
         </style>
         <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/8/tinymce.min.js" referrerpolicy="origin"></script>
         <script>
@@ -70,6 +74,12 @@ def get_index_template(api_token):
                 <input type="text" id="subject" placeholder="Assunto" required aria-label="Assunto">
                 <input type="text" id="cc" placeholder="CC (separe por vírgulas)" aria-label="Cópia Carbono">
                 <input type="text" id="cco" placeholder="CCO (separe por vírgulas)" aria-label="Cópia Oculta">
+                <div class="template-bar">
+                    <select id="template-select" aria-label="Selecionar Template">
+                        <option value="">Carregar um Template</option>
+                    </select>
+                    <button type="button" id="save-template-button">SALVAR TEMPLATE</button>
+                </div>
                 <textarea id="message" placeholder="Transmissão (use <img> para imagens. Imagens anexadas podem conter hyperlinks)" required minlength="5" aria-label="Mensagem"></textarea>
                 <input type="file" id="csv-input" accept=".csv" aria-label="Escolher CSV com e-mails (opcional)">
                 <input type="file" id="attachment-input" multiple accept=".jpg,.jpeg,.png,.pdf" aria-label="Escolher anexos">
@@ -144,6 +154,80 @@ def get_index_template(api_token):
                     log("Tentativa de pré-visualizar com conteúdo vazio.", 'error');
                 }
             });
+
+            const saveTemplateButton = document.getElementById('save-template-button');
+            const templateSelect = document.getElementById('template-select');
+            let templates = [];
+
+            async function loadTemplates() {
+                try {
+                    const response = await fetch('/templates');
+                    if (!response.ok) throw new Error('Falha ao carregar templates');
+                    templates = await response.json();
+
+                    templateSelect.innerHTML = '<option value="">Carregar um Template</option>';
+                    templates.forEach(template => {
+                        const option = document.createElement('option');
+                        option.value = template.id;
+                        option.textContent = template.name;
+                        templateSelect.appendChild(option);
+                    });
+                    log("Templates carregados com sucesso.");
+                } catch (error) {
+                    showStatus(error.message, false);
+                    log(error.message, 'error');
+                }
+            }
+
+            saveTemplateButton.addEventListener('click', async () => {
+                const name = prompt("Digite o nome para este template:");
+                if (!name || !name.trim()) {
+                    showStatus("Nome do template inválido.", false);
+                    return;
+                }
+
+                const content = tinymce.get('message').getContent();
+                if (!content) {
+                    showStatus("Não há conteúdo para salvar como template.", false);
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/templates', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': document.querySelector('input[name="csrf_token"]').value
+                        },
+                        body: JSON.stringify({ name: name.trim(), content: content })
+                    });
+
+                    const result = await response.json();
+                    if (response.ok) {
+                        showStatus(result.message, true);
+                        log(result.message, 'success');
+                        loadTemplates(); // Recarrega a lista de templates
+                    } else {
+                        throw new Error(result.message || 'Erro desconhecido ao salvar template.');
+                    }
+                } catch (error) {
+                    showStatus(error.message, false);
+                    log(error.message, 'error');
+                }
+            });
+
+            templateSelect.addEventListener('change', () => {
+                const selectedId = templateSelect.value;
+                if (selectedId) {
+                    const selectedTemplate = templates.find(t => t.id === selectedId);
+                    if (selectedTemplate) {
+                        tinymce.get('message').setContent(selectedTemplate.content);
+                        log(`Template "${selectedTemplate.name}" carregado.`);
+                    }
+                }
+            });
+
+            document.addEventListener('DOMContentLoaded', loadTemplates);
 
             function log(message, type = 'info') {
                 const log = document.createElement('div');
