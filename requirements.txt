@@ -5,3 +5,4 @@ bleach
 Flask-Limiter
 Flask-WTF
 python-dotenv
+Flask-SocketIO

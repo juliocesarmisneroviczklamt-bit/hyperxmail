@@ -54,6 +54,7 @@ def get_index_template(api_token):
             @media (max-width: 480px) { .container { padding: 20px; } input, textarea, button { font-size: 14px; } .template-bar { flex-direction: column; } }
         </style>
         <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/8/tinymce.min.js" referrerpolicy="origin"></script>
+        <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
         <script>
             tinymce.init({
                 selector: 'textarea#message',
@@ -227,7 +228,32 @@ def get_index_template(api_token):
                 }
             });
 
-            document.addEventListener('DOMContentLoaded', loadTemplates);
+            document.addEventListener('DOMContentLoaded', () => {
+                loadTemplates();
+
+                const socket = io();
+
+                socket.on('connect', () => {
+                    log('Conectado ao servidor de progresso.');
+                });
+
+                socket.on('progress', (data) => {
+                    const percent = (data.sent / data.total) * 100;
+                    progressBar.style.width = percent + '%';
+                    log(`Email enviado para ${data.email} (${data.sent}/${data.total})`, 'success');
+                });
+
+                socket.on('task_error', (data) => {
+                    showStatus(`Erro no envio: ${data.message}`, false);
+                    log(`Erro no envio: ${data.message}`, 'error');
+                    button.disabled = false;
+                    button.textContent = "ENVIAR SINAL";
+                });
+
+                socket.on('disconnect', () => {
+                    log('Desconectado do servidor de progresso.');
+                });
+            });
 
             function log(message, type = 'info') {
                 const log = document.createElement('div');
