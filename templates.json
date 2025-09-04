@@ -1,0 +1,22 @@
+[
+    {
+        "id": "8c5a3bb3-f12b-47f3-8ad3-371863cdf936",
+        "name": "My Test Template",
+        "content": "<h2>Template Header</h2>\n<p>This is my saved template.</p>"
+    },
+    {
+        "id": "752dc55f-5e00-424e-a679-03a5572f8686",
+        "name": "My Test Template",
+        "content": "<h2>Template Header</h2>\n<p>This is my saved template.</p>"
+    },
+    {
+        "id": "849c28b1-30ac-4419-b560-a99da9cc359f",
+        "name": "My Test Template",
+        "content": "<h2>Template Header</h2>\n<p>This is my saved template.</p>"
+    },
+    {
+        "id": "10309b0d-a8e9-47dc-8a52-e8014a015533",
+        "name": "My Test Template",
+        "content": "<h2>Template Header</h2>\n<p>This is my saved template.</p>"
+    }
+]

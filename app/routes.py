@@ -1,5 +1,8 @@
 import logging
 import bleach
+import json
+import os
+import uuid
 from flask import jsonify, make_response, request  # Adicionada a importação de request
 from .email_utils import check_smtp_credentials, send_bulk_emails
 from .templates import get_index_template
@@ -98,3 +101,53 @@ def init_routes(app):
         except Exception as e:
             logger.error(f"Erro geral na rota /send_email: {str(e)}", exc_info=True)
             return make_response(jsonify({'status': 'error', 'message': f'Erro interno no servidor: {str(e)}'}), 500)
+
+    @app.route('/templates', methods=['GET'])
+    def get_templates():
+        """
+        Rota para obter a lista de templates salvos.
+        """
+        if not os.path.exists('templates.json'):
+            return jsonify([])
+
+        try:
+            with open('templates.json', 'r') as f:
+                templates = json.load(f)
+            return jsonify(templates)
+        except (IOError, json.JSONDecodeError) as e:
+            logger.error(f"Erro ao ler templates.json: {e}")
+            return make_response(jsonify({'status': 'error', 'message': 'Erro ao carregar templates.'}), 500)
+
+    @app.route('/templates', methods=['POST'])
+    def save_template():
+        """
+        Rota para salvar um novo template.
+        """
+        try:
+            data = request.get_json()
+            name = bleach.clean(data.get('name', '')).strip()
+            content = data.get('content', '') # O conteúdo é HTML e já será sanitizado no envio do e-mail
+
+            if not name or not content:
+                return make_response(jsonify({'status': 'error', 'message': 'Nome e conteúdo do template são obrigatórios.'}), 400)
+
+            templates = []
+            if os.path.exists('templates.json'):
+                with open('templates.json', 'r') as f:
+                    try:
+                        templates = json.load(f)
+                    except json.JSONDecodeError:
+                        logger.warning("templates.json está corrompido ou vazio. Criando um novo.")
+                        templates = []
+
+            # Adiciona um ID único ao template
+            new_template = {'id': str(uuid.uuid4()), 'name': name, 'content': content}
+            templates.append(new_template)
+
+            with open('templates.json', 'w') as f:
+                json.dump(templates, f, indent=4)
+
+            return make_response(jsonify({'status': 'success', 'message': 'Template salvo com sucesso!', 'template': new_template}), 201)
+        except Exception as e:
+            logger.error(f"Erro ao salvar template: {e}", exc_info=True)
+            return make_response(jsonify({'status': 'error', 'message': 'Erro interno ao salvar template.'}), 500)
