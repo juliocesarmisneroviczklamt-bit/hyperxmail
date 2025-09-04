@@ -1,0 +1,7 @@
+requests
+Flask[async]
+python-decouple
+bleach
+Flask-Limiter
+Flask-WTF
+python-dotenv
