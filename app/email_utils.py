@@ -78,11 +78,18 @@ async def send_email_task(email_data):
         msg_related = MIMEMultipart('related')
         msg.attach(msg_related)
 
-        # Sanitiza a mensagem permitindo tags <img> e <a> com seus atributos
-        allowed_tags = list(bleach.sanitizer.ALLOWED_TAGS) + ['img', 'a']
+        # Sanitiza a mensagem permitindo tags e atributos comuns de rich text
+        allowed_tags = list(bleach.sanitizer.ALLOWED_TAGS) + [
+            'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span',
+            'img', 'a', 'code'
+        ]
         allowed_attributes = {
-            'img': ['src', 'alt'],
-            'a': ['href', 'target']
+            '*': ['style'],
+            'img': ['src', 'alt', 'title', 'width', 'height'],
+            'a': ['href', 'target', 'title'],
+            'td': ['align'],
+            'th': ['align']
         }
         sanitized_message = bleach.clean(message, tags=allowed_tags, attributes=allowed_attributes)
 

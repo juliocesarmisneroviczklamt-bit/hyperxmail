@@ -49,6 +49,14 @@ def get_index_template(api_token):
             #attachment-input { display: none; }
             @media (max-width: 480px) { .container { padding: 20px; } input, textarea, button { font-size: 14px; } }
         </style>
+        <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/8/tinymce.min.js" referrerpolicy="origin"></script>
+        <script>
+            tinymce.init({
+                selector: 'textarea#message',
+                plugins: 'code table lists image link',
+                toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright | indent outdent | bullist numlist | code | table | image | link'
+            });
+        </script>
     </head>
     <body>
         <div id="particles-js"></div>
@@ -233,6 +241,7 @@ def get_index_template(api_token):
 
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
+                tinymce.triggerSave(); // Salva o conteúdo do editor no textarea
                 log("Iniciando processo de envio...");
 
                 const subject = document.getElementById('subject').value.trim();
