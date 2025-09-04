@@ -194,6 +194,7 @@ async def send_bulk_emails(subject, cc, bcc, message, attachments, csv_content=N
     Returns:
         dict: Resultado do envio em massa com status e mensagem.
     """
+    from app import socketio  # Importação tardia para evitar import circular
     try:
         # Extrai e-mails do CSV e da lista manual
         all_emails = set()
@@ -221,17 +222,27 @@ async def send_bulk_emails(subject, cc, bcc, message, attachments, csv_content=N
             logger.warning("Todos os e-mails já foram enviados anteriormente.")
             return {'status': 'success', 'message': "Nenhum novo e-mail para enviar (todos já enviados)."}
 
-        # Cria tarefas assíncronas para enviar os e-mails
-        tasks = [send_email_task((batch, subject, cc, bcc, message, attachments)) for batch in emails_to_send]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        # Envia e-mails sequencialmente para relatar o progresso
+        sent_count = 0
+        total_to_send = len(emails_to_send)
+        for batch in emails_to_send:
+            result = await send_email_task((batch, subject, cc, bcc, message, attachments))
+            if isinstance(result, dict) and result['status'] == 'success':
+                sent_count += 1
+                # Emite o progresso via WebSocket
+                progress_data = {'sent': sent_count, 'total': total_to_send, 'email': batch[0]}
+                socketio.emit('progress', progress_data)
+                logger.info(f"Progresso emitido: {progress_data}")
+            else:
+                # Se um e-mail falhar, podemos decidir parar ou continuar.
+                # Por agora, vamos registrar e parar.
+                error_message = result.get('message', 'Erro desconhecido')
+                logger.error(f"Falha ao enviar e-mail para {batch[0]}: {error_message}")
+                # Emite um erro final e retorna
+                socketio.emit('task_error', {'message': f"Falha ao enviar para {batch[0]}: {error_message}"})
+                return {'status': 'error', 'message': f"Falha no envio para {batch[0]}"}
 
-        # Verifica os resultados das tarefas
-        for result in results:
-            if isinstance(result, dict) and result['status'] != 'success':
-                logger.error(f"Falha ao enviar e-mail: {result['message']}")
-                return result
-
-        return {'status': 'success', 'message': f"Enviados {len(emails_to_send)} e-mails."}
+        return {'status': 'success', 'message': f"Enviados {sent_count} de {total_to_send} e-mails."}
     except Exception as e:
         logger.error(f"Erro no envio em massa: {e}", exc_info=True)
         return {'status': 'error', 'message': str(e)}
