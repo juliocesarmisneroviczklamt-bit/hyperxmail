@@ -17,44 +17,177 @@ def get_index_template(api_token):
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Futuristic Email Sender</title>
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
+        <title>Modern Email Sender</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
         <style>
+            :root {
+                --bg-gradient-start: #101727;
+                --bg-gradient-end: #2c3e50;
+                --text-primary: #ecf0f1;
+                --accent-primary: #3498db;
+                --accent-secondary: #9b59b6;
+                --accent-glow: rgba(52, 152, 219, 0.4);
+                --container-bg: rgba(255, 255, 255, 0.08);
+                --container-border: rgba(255, 255, 255, 0.2);
+                --input-bg: rgba(0, 0, 0, 0.2);
+                --input-border: rgba(52, 152, 219, 0.5);
+                --success: #2ecc71;
+                --error: #e74c3c;
+                --disabled-bg: #566573;
+                --font-family: 'Poppins', sans-serif;
+            }
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: 'Orbitron', sans-serif; background: linear-gradient(135deg, #0d0d1a 0%, #1a1a2e 100%); display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; position: relative; color: #fff; }
-            #particles-js { position: absolute; width: 100%; height: 100%; z-index: -1; }
-            .container { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 15px; padding: 30px; width: 90%; max-width: 450px; box-shadow: 0 0 20px rgba(0, 255, 255, 0.2); animation: fadeIn 1s ease-out; position: relative; z-index: 1; }
-            @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-            h1 { color: #00ffcc; text-align: center; font-size: clamp(20px, 5vw, 24px); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 25px; text-shadow: 0 0 10px rgba(0, 255, 204, 0.7); animation: glow 2s infinite alternate; }
-            @keyframes glow { from { text-shadow: 0 0 5px rgba(0, 255, 204, 0.7); } to { text-shadow: 0 0 15px rgba(0, 255, 204, 1); } }
-            input, textarea { width: 100%; padding: 12px; margin: 10px 0; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(0, 255, 255, 0.5); border-radius: 8px; color: #fff; font-size: 16px; outline: none; transition: all 0.3s ease; }
-            input:focus, textarea:focus { border-color: #00ffcc; box-shadow: 0 0 12px rgba(0, 255, 204, 0.8); }
-            input:invalid:focus, textarea:invalid:focus { border-color: #ff3366; box-shadow: 0 0 12px rgba(255, 51, 102, 0.8); }
-            textarea { height: 100px; resize: none; }
-            button { width: 100%; padding: 12px; background: linear-gradient(45deg, #00ffcc, #007bff); border: none; border-radius: 8px; color: #fff; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: all 0.3s ease; margin-top: 10px; }
-            button:disabled { background: #666; cursor: not-allowed; opacity: 0.7; }
-            button:hover:not(:disabled) { box-shadow: 0 0 20px rgba(0, 255, 255, 0.9); transform: scale(1.05); }
-            #attach-button { background: linear-gradient(45deg, #ff3366, #ff6699); }
-            #progress-bar { width: 0; height: 5px; background: #00ffcc; border-radius: 5px; margin-top: 10px; transition: width 0.3s ease; }
-            #status { text-align: center; margin-top: 15px; font-size: 14px; text-shadow: 0 0 5px rgba(0, 255, 204, 0.5); transition: opacity 0.3s ease; opacity: 0; }
+            body {
+                font-family: var(--font-family);
+                background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                overflow-x: hidden;
+                color: var(--text-primary);
+            }
+            #particles-js { position: fixed; width: 100%; height: 100%; z-index: -1; }
+            .container {
+                background: var(--container-bg);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid var(--container-border);
+                border-radius: 16px;
+                padding: 40px;
+                width: 95%;
+                max-width: 550px;
+                box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+                animation: fadeIn 0.8s ease-in-out;
+                z-index: 1;
+            }
+            @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+            h1 {
+                color: var(--text-primary);
+                text-align: center;
+                font-size: clamp(24px, 5vw, 28px);
+                font-weight: 600;
+                margin-bottom: 30px;
+                letter-spacing: 1px;
+            }
+            input, textarea, select {
+                width: 100%;
+                padding: 15px;
+                margin-bottom: 15px;
+                background: var(--input-bg);
+                border: 1px solid transparent;
+                border-radius: 8px;
+                color: var(--text-primary);
+                font-size: 16px;
+                outline: none;
+                transition: all 0.3s ease;
+                font-family: var(--font-family);
+            }
+            input:focus, textarea:focus, select:focus {
+                border-color: var(--accent-primary);
+                box-shadow: 0 0 15px var(--accent-glow);
+            }
+            textarea { height: 120px; resize: vertical; }
+            button {
+                width: 100%;
+                padding: 15px;
+                background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
+                border: none;
+                border-radius: 8px;
+                color: var(--text-primary);
+                font-size: 16px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                margin-top: 10px;
+            }
+            button:disabled {
+                background: var(--disabled-bg);
+                cursor: not-allowed;
+                opacity: 0.6;
+            }
+            button:hover:not(:disabled) {
+                transform: translateY(-3px);
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            }
+            #progress-bar { width: 0; height: 4px; background-color: var(--accent-primary); border-radius: 2px; margin-top: 20px; transition: width 0.4s ease-in-out; }
+            #status { text-align: center; margin-top: 20px; font-size: 15px; transition: opacity 0.3s ease; opacity: 0; height: 20px; }
             #status.active { opacity: 1; }
-            #email-tags { display: flex; flex-wrap: wrap; gap: 5px; padding: 5px; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(0, 255, 255, 0.5); border-radius: 8px; margin: 10px 0; }
-            .tag { display: flex; align-items: center; background: rgba(0, 255, 255, 0.3); padding: 5px 10px; border-radius: 5px; color: #fff; font-size: 14px; }
-            .tag.invalid { background: rgba(255, 51, 102, 0.3); border: 1px solid #ff3366; }
-            .tag button { background: none; border: none; color: #fff; font-size: 12px; margin-left: 5px; cursor: pointer; }
-            #to-input { border: none; background: none; color: #fff; flex-grow: 1; min-width: 100px; }
-            #log-area { margin-top: 20px; max-height: 150px; overflow-y: auto; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(0, 255, 255, 0.3); border-radius: 8px; padding: 10px; font-size: 12px; }
-            .log-success { color: #00ffcc; }
-            .log-error { color: #ff3366; }
-            #attachment-input { display: none; }
-            .template-bar { display: flex; gap: 10px; margin-bottom: 10px; }
-            .template-bar select { flex-grow: 1; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(0, 255, 255, 0.5); border-radius: 8px; color: #fff; padding: 12px; font-size: 16px; outline: none; }
-            .template-bar select option { background: #1a1a2e; color: #fff; }
-            .template-bar button { width: auto; padding: 0 20px; font-size: 14px; background: linear-gradient(45deg, #8a2be2, #4b0082); }
-            @media (max-width: 480px) { .container { padding: 20px; } input, textarea, button { font-size: 14px; } .template-bar { flex-direction: column; } }
+            #email-tags { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; background: var(--input-bg); border-radius: 8px; margin-bottom: 15px; }
+            .tag { display: flex; align-items: center; background: var(--accent-primary); padding: 6px 12px; border-radius: 20px; color: var(--text-primary); font-size: 14px; }
+            .tag.invalid { background: var(--error); }
+            .tag button { all: unset; cursor: pointer; margin-left: 8px; font-size: 16px; line-height: 1; }
+            #to-input { border: none; background: none; color: var(--text-primary); flex-grow: 1; min-width: 150px; padding: 0; margin: 0; }
+            #log-area { margin-top: 20px; max-height: 150px; overflow-y: auto; background: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 15px; font-size: 13px; line-height: 1.6; }
+            .log-success { color: var(--success); }
+            .log-error { color: var(--error); }
+            #attachment-input, #csv-input { display: none; }
+            .file-input-label {
+                display: block;
+                padding: 15px;
+                background: rgba(0,0,0,0.2);
+                border-radius: 8px;
+                text-align: center;
+                cursor: pointer;
+                margin-bottom: 15px;
+                transition: background 0.3s ease;
+            }
+            .file-input-label:hover { background: rgba(0,0,0,0.3); }
+            .template-bar { display: flex; gap: 10px; margin-bottom: 15px; }
+            .template-bar select { margin: 0; }
+            .template-bar button { width: auto; padding: 0 25px; margin: 0; font-size: 14px; background: var(--accent-secondary); }
+            .button-group { display: flex; gap: 10px; margin-top: 20px; }
+            .button-group button { width: 100%; margin: 0; }
+            .feather { width: 18px; height: 18px; margin-right: 8px; vertical-align: middle; }
+            .tag .feather { width: 14px; height: 14px; margin-right: 0; }
+            .file-input-label .feather { margin-right: 10px; }
+            button:active:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 10px rgba(0,0,0,0.2); }
+            .tag { transition: transform 0.2s ease; }
+            .file-input-label:hover { background: rgba(0,0,0,0.3); }
+            #status.active { animation: fadeInOut 5s ease-in-out; }
+            @keyframes fadeInOut {
+                0%, 100% { opacity: 0; }
+                10%, 90% { opacity: 1; }
+            }
+
+            /* Tablet */
+            @media (max-width: 992px) {
+                .container {
+                    padding: 30px;
+                }
+            }
+
+            /* Mobile */
+            @media (max-width: 600px) {
+                body {
+                    align-items: flex-start;
+                    padding-top: 20px;
+                }
+                .container {
+                    padding: 20px;
+                    width: 95%;
+                    margin-bottom: 20px;
+                }
+                h1 { font-size: 22px; }
+                input, textarea, select, button { font-size: 14px; padding: 12px; }
+                .template-bar { flex-direction: column; }
+                .button-group { flex-direction: column; }
+            }
+
+            /* Large Desktops */
+            @media (min-width: 1200px) {
+                .container {
+                    max-width: 650px;
+                }
+            }
         </style>
         <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/8/tinymce.min.js" referrerpolicy="origin"></script>
         <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+        <script src="https://unpkg.com/feather-icons"></script>
         <script>
             tinymce.init({
                 selector: 'textarea#message',
@@ -66,27 +199,33 @@ def get_index_template(api_token):
     <body>
         <div id="particles-js"></div>
         <div class="container">
-            <h1>EMAIL TRANSMISSOR</h1>
+            <h1>Modern Email Sender</h1>
             <form id="emailForm">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <div id="email-tags" aria-label="Destinatários">
-                    <input type="text" id="to-input" placeholder="Digite o(s) destinatário(s) e pressione Enter (opcional)" aria-label="Adicionar destinatário">
+                    <input type="text" id="to-input" placeholder="Add recipients and press Enter..." aria-label="Add recipient">
                 </div>
-                <input type="text" id="subject" placeholder="Assunto" required aria-label="Assunto">
-                <input type="text" id="cc" placeholder="CC (separe por vírgulas)" aria-label="Cópia Carbono">
-                <input type="text" id="cco" placeholder="CCO (separe por vírgulas)" aria-label="Cópia Oculta">
+                <input type="text" id="subject" placeholder="Subject" required aria-label="Subject">
+                <input type="text" id="cc" placeholder="CC (comma separated)" aria-label="Carbon Copy">
+                <input type="text" id="cco" placeholder="BCC (comma separated)" aria-label="Blind Carbon Copy">
                 <div class="template-bar">
-                    <select id="template-select" aria-label="Selecionar Template">
-                        <option value="">Carregar um Template</option>
+                    <select id="template-select" aria-label="Select Template">
+                        <option value="">Load a Template</option>
                     </select>
-                    <button type="button" id="save-template-button">SALVAR TEMPLATE</button>
+                    <button type="button" id="save-template-button"><i data-feather="save"></i>Save Template</button>
                 </div>
-                <textarea id="message" placeholder="Transmissão (use <img> para imagens. Imagens anexadas podem conter hyperlinks)" required minlength="5" aria-label="Mensagem"></textarea>
-                <input type="file" id="csv-input" accept=".csv" aria-label="Escolher CSV com e-mails (opcional)">
-                <input type="file" id="attachment-input" multiple accept=".jpg,.jpeg,.png,.pdf" aria-label="Escolher anexos">
-                <button type="button" id="attach-button">ANEXAR IMAGEM COM/SEM LINK</button>
-                <button type="button" id="preview-button" style="background: linear-gradient(45deg, #ff9a28, #ffcd3c);">PRÉ-VISUALIZAR</button>
-                <button type="submit">ENVIAR SINAL</button>
+                <textarea id="message" placeholder="Compose your message... (use <img> for images)" required minlength="5" aria-label="Message"></textarea>
+
+                <label for="csv-input" class="file-input-label" id="csv-label"><i data-feather="upload-cloud"></i>Select CSV with emails (optional)</label>
+                <input type="file" id="csv-input" accept=".csv" aria-label="Choose CSV with emails (optional)">
+
+                <label for="attachment-input" class="file-input-label" id="attachment-label"><i data-feather="paperclip"></i>Attach Files (PDF, JPG, PNG)</label>
+                <input type="file" id="attachment-input" multiple accept=".jpg,.jpeg,.png,.pdf" aria-label="Choose attachments">
+
+                <div class="button-group">
+                    <button type="button" id="preview-button"><i data-feather="eye"></i>Preview</button>
+                    <button type="submit"><i data-feather="send"></i>Send Broadcast</button>
+                </div>
                 <div id="progress-bar"></div>
             </form>
             <p id="status"></p>
@@ -96,9 +235,24 @@ def get_index_template(api_token):
         <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
         <script>
             particlesJS('particles-js', {
-                particles: { number: { value: 80, density: { enable: true, value_area: 800 } }, color: { value: '#00ffcc' }, shape: { type: 'circle' }, opacity: { value: 0.7, random: true }, size: { value: 3, random: true }, move: { enable: true, speed: 2, direction: 'none', random: true } },
-                interactivity: { detect_on: 'canvas', events: { onhover: { enable: true, mode: 'repulse' }, onclick: { enable: true, mode: 'push' } }, modes: { repulse: { distance: 150 }, push: { particles_nb: 6 } } }
+                "particles": {
+                    "number": { "value": 60, "density": { "enable": true, "value_area": 800 } },
+                    "color": { "value": "#3498db" },
+                    "shape": { "type": "circle" },
+                    "opacity": { "value": 0.5, "random": true },
+                    "size": { "value": 3, "random": true },
+                    "line_linked": { "enable": false },
+                    "move": { "enable": true, "speed": 2, "direction": "none", "random": true, "straight": false, "out_mode": "out" }
+                },
+                "interactivity": {
+                    "detect_on": "canvas",
+                    "events": { "onhover": { "enable": true, "mode": "repulse" }, "onclick": { "enable": true, "mode": "push" } },
+                    "modes": { "repulse": { "distance": 100, "duration": 0.4 }, "push": { "particles_nb": 4 } }
+                },
+                "retina_detect": true
             });
+
+            feather.replace();
 
             const emailTags = document.getElementById('email-tags');
             const toInput = document.getElementById('to-input');
@@ -113,13 +267,14 @@ def get_index_template(api_token):
                     const isValid = emailRegex.test(email);
                     const tag = document.createElement('div');
                     tag.className = `tag ${isValid ? '' : 'invalid'}`;
-                    tag.innerHTML = `${email} <button type="button" aria-label="Remover">x</button>`;
+                    tag.innerHTML = `${email} <button type="button" aria-label="Remover"><i data-feather="x"></i></button>`;
                     tag.querySelector('button').onclick = () => {
                         emails = emails.filter(e => e !== email);
                         tag.remove();
                         log(`Destinatário removido: ${email}`);
                     };
                     emailTags.insertBefore(tag, toInput);
+                    feather.replace();
                     emails.push(email);
                     log(`Destinatário adicionado: ${email} ${isValid ? '(válido)' : '(inválido)'}`);
                 }
@@ -136,7 +291,6 @@ def get_index_template(api_token):
             const form = document.getElementById('emailForm');
             const status = document.getElementById('status');
             const button = form.querySelector('button[type="submit"]');
-            const attachButton = document.getElementById('attach-button');
             const csvInput = document.getElementById('csv-input');
             const attachmentInput = document.getElementById('attachment-input');
             const progressBar = document.getElementById('progress-bar');
@@ -265,9 +419,12 @@ def get_index_template(api_token):
 
             function showStatus(message, success) {
                 status.textContent = message;
+                status.style.color = success ? 'var(--success)' : 'var(--error)';
                 status.classList.add('active');
-                status.style.color = success ? '#00ffcc' : '#ff3366';
-                setTimeout(() => status.classList.remove('active'), 5000);
+                // A animação CSS cuida do fade out
+                status.addEventListener('animationend', () => {
+                    status.classList.remove('active');
+                }, { once: true });
             }
 
             function checkFileSize(input) {
@@ -317,10 +474,32 @@ def get_index_template(api_token):
                 }
             }
 
-            attachButton.addEventListener('click', () => attachmentInput.click());
+            csvInput.addEventListener('change', () => {
+                const label = document.getElementById('csv-label');
+                if (csvInput.files.length > 0) {
+                    label.textContent = `CSV: ${csvInput.files[0].name}`;
+                    const file = csvInput.files[0];
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        selectedCsvContent = event.target.result;
+                        log(`CSV selecionado: ${file.name}`, 'success');
+                    };
+                    reader.readAsText(file);
+                } else {
+                    label.textContent = 'Select CSV with emails (optional)';
+                    selectedCsvContent = '';
+                }
+            });
 
             attachmentInput.addEventListener('change', () => {
+                const label = document.getElementById('attachment-label');
                 const files = attachmentInput.files;
+                if (files.length > 0) {
+                    label.textContent = `${files.length} file(s) selected`;
+                } else {
+                    label.textContent = 'Attach Files (PDF, JPG, PNG)';
+                }
+
                 if (files.length === 0) {
                     showStatus("Nenhum anexo selecionado.", false);
                     log("Nenhum anexo selecionado.", 'error');
