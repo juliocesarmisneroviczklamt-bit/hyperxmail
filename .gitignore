@@ -11,3 +11,9 @@ env/
 
 # Log files
 *.log
+
+# Database files
+*.db
+
+# Verification script files
+jules-scratch/

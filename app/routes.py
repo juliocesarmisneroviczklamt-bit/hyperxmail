@@ -3,6 +3,8 @@ import bleach
 from flask import jsonify, make_response, request  # Adicionada a importação de request
 from .email_utils import check_smtp_credentials, send_bulk_emails
 from .templates import get_index_template
+from flask import redirect, jsonify
+import base64
 
 # Configura o logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -22,6 +24,79 @@ def check_auth(token, expected_token):
     return token == expected_token
 
 def init_routes(app):
+    # 1x1 transparent GIF
+    PIXEL_GIF_DATA = base64.b64decode(b'R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==')
+
+    @app.route('/track/open/<email_id>')
+    def track_open(email_id):
+        from . import db
+        from .models import Email, Open
+        email = Email.query.get(email_id)
+        if email:
+            new_open = Open(email_id=email.id)
+            db.session.add(new_open)
+            db.session.commit()
+
+        response = make_response(PIXEL_GIF_DATA)
+        response.headers['Content-Type'] = 'image/gif'
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
+
+    @app.route('/track/click/<email_id>')
+    def track_click(email_id):
+        from . import db
+        from .models import Email, Click
+        url = request.args.get('url')
+        if not url:
+            return "URL não fornecida", 400
+
+        email = Email.query.get(email_id)
+        if email:
+            new_click = Click(email_id=email.id, url=url)
+            db.session.add(new_click)
+            db.session.commit()
+
+        return redirect(url)
+
+    @app.route('/api/campaigns')
+    def api_campaigns():
+        from .models import Campaign
+        campaigns = Campaign.query.order_by(Campaign.created_at.desc()).all()
+        return jsonify([{
+            'id': c.id,
+            'subject': c.subject,
+            'created_at': c.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        } for c in campaigns])
+
+    @app.route('/api/reports/<int:campaign_id>')
+    def api_report(campaign_id):
+        from . import db
+        from .models import Campaign, Email, Open, Click
+        campaign = Campaign.query.get_or_404(campaign_id)
+
+        total_sent = len(campaign.emails)
+
+        # Contagem de aberturas únicas por e-mail
+        unique_opens = db.session.query(Open.email_id).distinct().filter(Email.campaign_id == campaign_id).join(Email).count()
+
+        # Contagem de cliques únicos por e-mail
+        unique_clicks = db.session.query(Click.email_id).distinct().filter(Email.campaign_id == campaign_id).join(Email).count()
+
+        open_rate = (unique_opens / total_sent) * 100 if total_sent > 0 else 0
+        click_rate = (unique_clicks / total_sent) * 100 if total_sent > 0 else 0
+
+        return jsonify({
+            'campaign_id': campaign.id,
+            'subject': campaign.subject,
+            'created_at': campaign.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'total_sent': total_sent,
+            'unique_opens': unique_opens,
+            'unique_clicks': unique_clicks,
+            'open_rate': f'{open_rate:.2f}%',
+            'click_rate': f'{click_rate:.2f}%'
+        })
     """
     Registra as rotas na aplicação Flask.
 
@@ -37,6 +112,11 @@ def init_routes(app):
             str: HTML renderizado da interface.
         """
         return get_index_template(app.config['API_TOKEN'])
+
+    @app.route('/reports')
+    def reports():
+        from .templates import get_reports_template
+        return get_reports_template()
 
     @app.route('/send_email', methods=['POST'])
     async def send_email():
@@ -88,7 +168,8 @@ def init_routes(app):
 
             logger.debug("Iniciando envio em massa...")
             # Envia os e-mails em massa
-            result = await send_bulk_emails(subject, cc, bcc, message, attachments, csv_content, manual_emails)
+            base_url = request.host_url
+            result = await send_bulk_emails(subject, cc, bcc, message, attachments, base_url, csv_content, manual_emails)
             if result['status'] != 'success':
                 logger.error(f"Falha no envio em massa: {result['message']}")
                 return make_response(jsonify(result), 500)

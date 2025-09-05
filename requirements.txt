@@ -6,3 +6,6 @@ Flask-Limiter
 Flask-WTF
 python-dotenv
 Flask-SocketIO
+Flask-SQLAlchemy
+SQLAlchemy
+beautifulsoup4

@@ -3,11 +3,13 @@ from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_socketio import SocketIO
+from flask_sqlalchemy import SQLAlchemy
 from .config import Config
 from .routes import init_routes
 
-# Cria a instância do SocketIO
+# Cria a instância do SocketIO e do SQLAlchemy
 socketio = SocketIO()
+db = SQLAlchemy()
 
 def create_app():
     """
@@ -26,6 +28,9 @@ def create_app():
     csrf = CSRFProtect(app)
     csrf.init_app(app)
 
+    # Inicializa o banco de dados
+    db.init_app(app)
+
     # Configura o Flask-Limiter para limitar requisições
     Limiter(app=app, key_func=get_remote_address, default_limits=["500 per hour"])
 
@@ -34,5 +39,10 @@ def create_app():
 
     # Registra as rotas
     init_routes(app)
+
+    from . import models
+
+    with app.app_context():
+        db.create_all()
 
     return app, socketio

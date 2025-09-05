@@ -17,7 +17,7 @@ def get_index_template(api_token):
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Modern Email Sender</title>
+        <title>hyperxmail</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
@@ -77,7 +77,7 @@ def get_index_template(api_token):
                 padding: 15px;
                 margin-bottom: 15px;
                 background: var(--input-bg);
-                border: 1px solid transparent;
+                border: 1px solid var(--container-border);
                 border-radius: 8px;
                 color: var(--text-primary);
                 font-size: 16px;
@@ -88,6 +88,14 @@ def get_index_template(api_token):
             input:focus, textarea:focus, select:focus {
                 border-color: var(--accent-primary);
                 box-shadow: 0 0 15px var(--accent-glow);
+            }
+            input.valid {
+                background-color: rgba(46, 204, 113, 0.1) !important;
+                border-color: var(--success) !important;
+            }
+            input.invalid {
+                background-color: rgba(231, 76, 60, 0.1) !important;
+                border-color: var(--error) !important;
             }
             textarea { height: 120px; resize: vertical; }
             button {
@@ -199,7 +207,7 @@ def get_index_template(api_token):
     <body>
         <div id="particles-js"></div>
         <div class="container">
-            <h1>Modern Email Sender</h1>
+            <h1>hyperxmail</h1>
             <form id="emailForm">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <div id="email-tags" aria-label="Destinatários">
@@ -213,7 +221,27 @@ def get_index_template(api_token):
                         <option value="">Load a Template</option>
                     </select>
                     <button type="button" id="save-template-button"><i data-feather="save"></i>Save Template</button>
+                    <a href="/reports" class="button-link"><i data-feather="bar-chart-2"></i>Reports</a>
                 </div>
+                <style>
+                    .button-link {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 0 25px;
+                        font-size: 14px;
+                        background: var(--accent-secondary);
+                        color: var(--text-primary);
+                        border-radius: 8px;
+                        text-decoration: none;
+                        transition: all 0.3s ease;
+                        height: 50px;
+                    }
+                    .button-link:hover {
+                        transform: translateY(-3px);
+                        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+                    }
+                </style>
                 <textarea id="message" placeholder="Compose your message... (use <img> for images)" required minlength="5" aria-label="Message"></textarea>
 
                 <label for="csv-input" class="file-input-label" id="csv-label"><i data-feather="upload-cloud"></i>Select CSV with emails (optional)</label>
@@ -254,9 +282,27 @@ def get_index_template(api_token):
 
             feather.replace();
 
-            const emailTags = document.getElementById('email-tags');
+            const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+
+            function validateEmailList(input) {
+                const emails = input.value.split(',').map(e => e.trim()).filter(e => e);
+                if (emails.length === 0) {
+                    input.classList.remove('valid', 'invalid');
+                    return;
+                }
+
+                const allValid = emails.every(email => emailRegex.test(email));
+
+                if (allValid) {
+                    input.classList.add('valid');
+                    input.classList.remove('invalid');
+                } else {
+                    input.classList.add('invalid');
+                    input.classList.remove('valid');
+                }
+            }
+
             const toInput = document.getElementById('to-input');
-            const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
             let emails = [];
             let attachmentCount = 0;
             let selectedCsvContent = '';
@@ -292,10 +338,16 @@ def get_index_template(api_token):
             const status = document.getElementById('status');
             const button = form.querySelector('button[type="submit"]');
             const csvInput = document.getElementById('csv-input');
+            const ccInput = document.getElementById('cc');
+            const ccoInput = document.getElementById('cco');
             const attachmentInput = document.getElementById('attachment-input');
             const progressBar = document.getElementById('progress-bar');
             const logArea = document.getElementById('log-area');
             const previewButton = document.getElementById('preview-button');
+            const emailTags = document.getElementById('email-tags');
+
+            ccInput.addEventListener('input', () => validateEmailList(ccInput));
+            ccoInput.addEventListener('input', () => validateEmailList(ccoInput));
 
             previewButton.addEventListener('click', () => {
                 const content = tinymce.get('message').getContent();
@@ -644,3 +696,190 @@ def get_index_template(api_token):
     </html>
     """
     return render_template_string(html_template, api_token=api_token, csrf_token=generate_csrf())
+
+def get_reports_template():
+    """
+    Gera o template HTML para a página de relatórios.
+    """
+    html_template = r"""
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>hyperxmail - Relatórios</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <style>
+            :root {
+                --bg-gradient-start: #101727;
+                --bg-gradient-end: #2c3e50;
+                --text-primary: #ecf0f1;
+                --accent-primary: #3498db;
+                --container-bg: rgba(255, 255, 255, 0.08);
+                --container-border: rgba(255, 255, 255, 0.2);
+                --font-family: 'Poppins', sans-serif;
+            }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: var(--font-family);
+                background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+                color: var(--text-primary);
+                padding: 20px;
+            }
+            .container {
+                background: var(--container-bg);
+                backdrop-filter: blur(10px);
+                border: 1px solid var(--container-border);
+                border-radius: 16px;
+                padding: 40px;
+                width: 95%;
+                max-width: 1200px;
+                margin: auto;
+                box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            }
+            h1 {
+                text-align: center;
+                margin-bottom: 30px;
+            }
+            #campaigns-list {
+                margin-bottom: 30px;
+            }
+            #campaigns-list select {
+                width: 100%;
+                padding: 15px;
+                background: rgba(0,0,0,0.2);
+                border: 1px solid var(--accent-primary);
+                border-radius: 8px;
+                color: var(--text-primary);
+                font-size: 16px;
+            }
+            #report-details {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 30px;
+            }
+            .stat-card {
+                background: rgba(0,0,0,0.2);
+                padding: 20px;
+                border-radius: 8px;
+                text-align: center;
+            }
+            .stat-card h3 {
+                margin-bottom: 10px;
+                color: var(--accent-primary);
+            }
+            .stat-card p {
+                font-size: 24px;
+                font-weight: 600;
+            }
+            #chart-container {
+                grid-column: span 2;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Relatórios de Campanhas</h1>
+            <div id="campaigns-list">
+                <select id="campaign-select" onchange="loadReport()">
+                    <option value="">Selecione uma campanha</option>
+                </select>
+            </div>
+            <div id="report-details" style="display: none;">
+                <div class="stat-card">
+                    <h3>Total Enviado</h3>
+                    <p id="total-sent"></p>
+                </div>
+                <div class="stat-card">
+                    <h3>Aberturas Únicas</h3>
+                    <p id="unique-opens"></p>
+                </div>
+                <div class="stat-card">
+                    <h3>Cliques Únicos</h3>
+                    <p id="unique-clicks"></p>
+                </div>
+                 <div class="stat-card">
+                    <h3>Taxa de Abertura</h3>
+                    <p id="open-rate"></p>
+                </div>
+                <div id="chart-container">
+                    <canvas id="report-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let reportChart;
+
+            async function loadCampaigns() {
+                const response = await fetch('/api/campaigns');
+                const campaigns = await response.json();
+                const select = document.getElementById('campaign-select');
+                campaigns.forEach(c => {
+                    const option = document.createElement('option');
+                    option.value = c.id;
+                    option.textContent = `${c.subject} (${c.created_at})`;
+                    select.appendChild(option);
+                });
+            }
+
+            async function loadReport() {
+                const campaignId = document.getElementById('campaign-select').value;
+                if (!campaignId) {
+                    document.getElementById('report-details').style.display = 'none';
+                    return;
+                }
+
+                const response = await fetch(`/api/reports/${campaignId}`);
+                const report = await response.json();
+
+                document.getElementById('total-sent').textContent = report.total_sent;
+                document.getElementById('unique-opens').textContent = report.unique_opens;
+                document.getElementById('unique-clicks').textContent = report.unique_clicks;
+                document.getElementById('open-rate').textContent = report.open_rate;
+
+                document.getElementById('report-details').style.display = 'grid';
+
+                const ctx = document.getElementById('report-chart').getContext('2d');
+                if (reportChart) {
+                    reportChart.destroy();
+                }
+                reportChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Enviados', 'Aberturas', 'Cliques'],
+                        datasets: [{
+                            label: 'Estatísticas da Campanha',
+                            data: [report.total_sent, report.unique_opens, report.unique_clicks],
+                            backgroundColor: [
+                                'rgba(52, 152, 219, 0.5)',
+                                'rgba(46, 204, 113, 0.5)',
+                                'rgba(241, 196, 15, 0.5)'
+                            ],
+                            borderColor: [
+                                'rgba(52, 152, 219, 1)',
+                                'rgba(46, 204, 113, 1)',
+                                'rgba(241, 196, 15, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            window.onload = loadCampaigns;
+        </script>
+    </body>
+    </html>
+    """
+    return render_template_string(html_template)

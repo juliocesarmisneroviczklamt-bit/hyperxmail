@@ -22,5 +22,10 @@ class Config:
     # Token de API para autenticação
     API_TOKEN = config('API_TOKEN', default='pinguinsdemadagascar')
 
-    # Chave secreta para o Flask
+    # Chave secreта para o Flask
     SECRET_KEY = config('SECRET_KEY', default='sua-chave-secreta-aqui')
+
+    # Configurações do Banco de Dados
+    SQLALCHEMY_DATABASE_URI = config('SQLALCHEMY_DATABASE_URI', default='sqlite:///tracking.db')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    WTF_CSRF_ENABLED = False
