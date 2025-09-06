@@ -57,8 +57,8 @@ def get_index_template(api_token):
                 border: 1px solid var(--container-border);
                 border-radius: 16px;
                 padding: 40px;
-                width: 95%;
-                max-width: 550px;
+                width: 80%;
+                max-width: 1400px;
                 box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
                 animation: fadeIn 0.8s ease-in-out;
                 z-index: 1;
@@ -186,12 +186,6 @@ def get_index_template(api_token):
                 .button-group { flex-direction: column; }
             }
 
-            /* Large Desktops */
-            @media (min-width: 1200px) {
-                .container {
-                    max-width: 650px;
-                }
-            }
         </style>
         <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/8/tinymce.min.js" referrerpolicy="origin"></script>
         <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
