@@ -25,8 +25,7 @@ def create_app():
     app.config.from_object(Config)
 
     # Inicializa o CSRF para proteção contra ataques
-    csrf = CSRFProtect(app)
-    csrf.init_app(app)
+    CSRFProtect(app)
 
     # Inicializa o banco de dados
     db.init_app(app)
