@@ -1,6 +1,6 @@
 import logging
 import bleach
-from flask import jsonify, make_response, request, redirect, session, flash
+from flask import jsonify, make_response, request, redirect
 from .email_utils import check_smtp_credentials, send_bulk_emails
 from .template_utils import get_index_template, get_reports_template
 import base64
@@ -10,43 +10,9 @@ import base64
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def check_auth(token, expected_token):
-    """
-    Verifica se o token de autenticação é válido.
-
-    Args:
-        token (str): Token fornecido na requisição.
-        expected_token (str): Token esperado configurado no sistema.
-
-    Returns:
-        bool: True se o token for válido, False caso contrário.
-    """
-    return token == expected_token
-
 def init_routes(app):
     # 1x1 transparent GIF
     PIXEL_GIF_DATA = base64.b64decode(b'R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==')
-
-    @app.route('/login', methods=['GET', 'POST'])
-    def login():
-        if request.method == 'POST':
-            token = request.form.get('token')
-            if check_auth(token, app.config['API_TOKEN']):
-                session['authenticated'] = True
-                return redirect('/')
-            else:
-                flash('Invalid token', 'danger')
-        return """
-        <form method="post">
-            Token: <input type="password" name="token">
-            <input type="submit" value="Login">
-        </form>
-        """
-
-    @app.route('/logout')
-    def logout():
-        session.pop('authenticated', None)
-        return redirect('/login')
 
     @app.route('/track/open/<email_id>')
     def track_open(email_id):
@@ -132,8 +98,6 @@ def init_routes(app):
         Returns:
             str: HTML renderizado da interface.
         """
-        if not session.get('authenticated'):
-            return redirect('/login')
         return get_index_template()
 
     @app.route('/reports')
@@ -154,10 +118,6 @@ def init_routes(app):
         if not check_smtp_credentials():
             logger.error("Falha na autenticação SMTP.")
             return make_response(jsonify({'status': 'error', 'message': 'Falha na autenticação SMTP.'}), 500)
-
-        # Verifica a autenticação
-        if not session.get('authenticated'):
-            return make_response(jsonify({'status': 'error', 'message': 'Unauthorized'}), 401)
 
         try:
             if not request.is_json:
