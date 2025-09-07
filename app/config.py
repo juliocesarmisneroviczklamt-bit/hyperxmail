@@ -25,6 +25,9 @@ class Config:
     # Chave da API do TinyMCE
     TINYMCE_API_KEY = config('TINYMCE_API_KEY', default='no-api-key')
 
+    # Tamanho máximo do anexo (em bytes)
+    MAX_ATTACHMENT_SIZE = config('MAX_ATTACHMENT_SIZE', default=10 * 1024 * 1024, cast=int)
+
     # Configurações de segurança dos cookies
     SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
     SESSION_COOKIE_HTTPONLY = True

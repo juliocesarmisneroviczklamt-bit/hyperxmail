@@ -11,3 +11,5 @@ beautifulsoup4
 Flask-Testing
 Flask-Migrate
 python-dotenv
+aiosmtplib
+python-magic
