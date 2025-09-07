@@ -25,6 +25,13 @@ email_regex = re.compile(r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$', re.IGNORECA
 # Tipos de anexo permitidos
 ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
 
+def sanitize_filename(filename):
+    """
+    Sanitiza um nome de arquivo, removendo caracteres perigosos para prevenir XSS e
+    outros ataques. Permite apenas caracteres alfanuméricos, pontos, hífens e underscores.
+    """
+    return re.sub(r'[^a-zA-Z0-9._-]', '', filename)
+
 def check_smtp_credentials():
     """
     Verifica se as credenciais SMTP estão corretas.
@@ -115,6 +122,11 @@ async def send_email_task(email_data, base_url):
         # Processa anexos e vincula imagens ao HTML via cid
         if attachments:
             for i, att in enumerate(attachments):
+                # Sanitiza o nome do arquivo para prevenir XSS e outros ataques
+                sanitized_filename = sanitize_filename(att['name'])
+                if not sanitized_filename:
+                    sanitized_filename = "attachment" # Nome padrão se o nome original for totalmente removido
+
                 cid = f'image-{uuid.uuid4()}'  # Gera um Content-ID único
                 # Substitui ou adiciona src com cid à tag <img> baseada no alt
                 if f'cid:image{i}' in sanitized_message:
@@ -123,7 +135,7 @@ async def send_email_task(email_data, base_url):
                 else:
                     sanitized_message = sanitized_message.replace(
                         f'<img alt="{att["name"]}"',
-                        f'<img src="cid:{cid}" alt="{att["name"]}"'
+                        f'<img src="cid:{cid}" alt="{sanitized_filename}"'
                     )
                 
                 # Atualiza o HTML no corpo
@@ -134,17 +146,18 @@ async def send_email_task(email_data, base_url):
                 decoded_data = base64.b64decode(att['data'])
                 file_size = len(decoded_data)
                 if file_size > Config.MAX_ATTACHMENT_SIZE:
-                    logger.error(f"Anexo {att['name']} excede o limite de {Config.MAX_ATTACHMENT_SIZE} bytes.")
-                    return {'status': 'error', 'message': f"Anexo {att['name']} excede o limite de 10MB."}
+                    logger.error(f"Anexo {sanitized_filename} excede o limite de {Config.MAX_ATTACHMENT_SIZE} bytes.")
+                    return {'status': 'error', 'message': f"Anexo {sanitized_filename} excede o limite de 10MB."}
                 
                 # Verifica o tipo MIME do anexo
-                mime_type, _ = mimetypes.guess_type(att['name'])
+                mime_type, _ = mimetypes.guess_type(sanitized_filename)
                 if mime_type not in ALLOWED_MIME_TYPES:
                     logger.error(f"Tipo de anexo não permitido: {mime_type}")
-                    return {'status': 'error', 'message': f"Tipo de anexo não permitido: {att['name']}"}
+                    return {'status': 'error', 'message': f"Tipo de anexo não permitido: {sanitized_filename}"}
                 
                 # Salva o arquivo temporário
-                suffix = '.' + att['name'].split('.')[-1]
+                # Usar o nome do arquivo sanitizado para determinar o sufixo
+                _, suffix = os.path.splitext(sanitized_filename)
                 with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp_file:
                     tmp_file.write(decoded_data)
                     saved_files.append(tmp_file.name)
@@ -154,12 +167,12 @@ async def send_email_task(email_data, base_url):
                     with open(tmp_file.name, 'rb') as img_file:
                         img = MIMEImage(img_file.read())
                         img.add_header('Content-ID', f'<{cid}>')
-                        img.add_header('Content-Disposition', 'inline', filename=att['name'])
+                        img.add_header('Content-Disposition', 'inline', filename=sanitized_filename)
                         msg_related.attach(img)
                 else:
                     with open(tmp_file.name, 'rb') as file:
-                        part = MIMEApplication(file.read(), Name=att['name'])
-                        part['Content-Disposition'] = f'attachment; filename="{att["name"]}"'
+                        part = MIMEApplication(file.read(), Name=sanitized_filename)
+                        part['Content-Disposition'] = f'attachment; filename="{sanitized_filename}"'
                         msg.attach(part)
 
         logger.debug(f"HTML gerado para o e-mail: {html_message}")

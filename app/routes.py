@@ -3,6 +3,9 @@ import bleach
 from flask import jsonify, make_response, request, redirect, render_template
 from .email_utils import check_smtp_credentials, send_bulk_emails
 import base64
+import os
+import json
+import uuid
 
 # Configura o logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -19,6 +22,50 @@ def init_routes(app):
     @app.route('/reports')
     def reports():
         return render_template('reports.html')
+
+    @app.route('/templates', methods=['GET'])
+    def get_templates():
+        templates_file = os.path.join(app.root_path, '..', 'templates.json')
+        if not os.path.exists(templates_file):
+            return jsonify([])
+        with open(templates_file, 'r') as f:
+            templates = json.load(f)
+        return jsonify(templates)
+
+    @app.route('/templates', methods=['POST'])
+    def save_template():
+        data = request.get_json()
+        if not data or 'name' not in data or 'content' not in data:
+            return jsonify({'status': 'error', 'message': 'Dados inválidos.'}), 400
+
+        name = bleach.clean(data['name']).strip()
+        # A simple bleach clean for the content, adjust as needed for HTML templates
+        content = bleach.clean(data['content'])
+
+        if not name or not content:
+            return jsonify({'status': 'error', 'message': 'Nome e conteúdo são obrigatórios.'}), 400
+
+        new_template = {
+            'id': str(uuid.uuid4()),
+            'name': name,
+            'content': content
+        }
+
+        templates_file = os.path.join(app.root_path, '..', 'templates.json')
+        templates = []
+        if os.path.exists(templates_file):
+            with open(templates_file, 'r') as f:
+                try:
+                    templates = json.load(f)
+                except json.JSONDecodeError:
+                    pass  # Trata o caso de arquivo vazio ou corrompido
+
+        templates.append(new_template)
+
+        with open(templates_file, 'w') as f:
+            json.dump(templates, f, indent=4)
+
+        return jsonify({'status': 'success', 'message': 'Template salvo com sucesso!', 'template': new_template}), 201
 
     @app.route('/track/open/<email_id>')
     def track_open(email_id):
