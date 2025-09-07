@@ -19,12 +19,6 @@ class Config:
     SMTP_SERVER = config('SMTP_SERVER', default='smtp.office365.com')
     SMTP_PORT = config('SMTP_PORT', default=587, cast=int)
 
-    # Token de API para autenticação
-    API_TOKEN = config('API_TOKEN')
-
-    # Chave secreта para o Flask
-    SECRET_KEY = config('SECRET_KEY')
-
     # Configurações do Banco de Dados
     SQLALCHEMY_DATABASE_URI = config('SQLALCHEMY_DATABASE_URI', default='sqlite:///tracking.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
