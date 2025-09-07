@@ -146,7 +146,7 @@ def init_routes(app):
 
     @app.route('/send_email', methods=['POST'])
     async def send_email():
-        if not check_smtp_credentials():
+        if not await check_smtp_credentials():
             logger.error("Falha na autenticação SMTP.")
             return make_response(jsonify({'status': 'error', 'message': 'Falha na autenticação SMTP.'}), 500)
 

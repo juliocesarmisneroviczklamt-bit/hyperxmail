@@ -2,14 +2,14 @@ import asyncio
 import os
 import base64
 import logging
-import smtplib
+import aiosmtplib
 import tempfile
 import uuid
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 from email.mime.application import MIMEApplication
-import mimetypes
+import magic
 import bleach
 import re
 from bs4 import BeautifulSoup
@@ -32,20 +32,25 @@ def sanitize_filename(filename):
     """
     return re.sub(r'[^a-zA-Z0-9._-]', '', filename)
 
-def check_smtp_credentials():
+async def check_smtp_credentials():
     """
-    Verifica se as credenciais SMTP estão corretas.
+    Verifica se as credenciais SMTP estão corretas de forma assíncrona.
 
     Returns:
         bool: True se as credenciais estiverem corretas, False caso contrário.
     """
     try:
-        with smtplib.SMTP(Config.SMTP_SERVER, Config.SMTP_PORT, timeout=10) as servidor:
-            servidor.starttls()
-            servidor.login(Config.EMAIL_SENDER, Config.EMAIL_PASSWORD)
+        # Conecta ao servidor SMTP
+        client = aiosmtplib.SMTP(hostname=Config.SMTP_SERVER, port=Config.SMTP_PORT, use_tls=False)
+        await client.connect()
+        # Inicia o TLS
+        await client.starttls()
+        # Faz o login
+        await client.login(Config.EMAIL_SENDER, Config.EMAIL_PASSWORD)
         logger.info("Credenciais SMTP verificadas com sucesso.")
+        await client.quit()
         return True
-    except smtplib.SMTPAuthenticationError as e:
+    except aiosmtplib.SMTPAuthenticationError as e:
         logger.error(f"Erro de autenticação SMTP: {e}")
         return False
     except Exception as e:
@@ -149,8 +154,8 @@ async def send_email_task(email_data, base_url):
                     logger.error(f"Anexo {sanitized_filename} excede o limite de {Config.MAX_ATTACHMENT_SIZE} bytes.")
                     return {'status': 'error', 'message': f"Anexo {sanitized_filename} excede o limite de 10MB."}
                 
-                # Verifica o tipo MIME do anexo
-                mime_type, _ = mimetypes.guess_type(sanitized_filename)
+                # Verifica o tipo MIME do anexo usando "magic numbers"
+                mime_type = magic.from_buffer(decoded_data, mime=True)
                 if mime_type not in ALLOWED_MIME_TYPES:
                     logger.error(f"Tipo de anexo não permitido: {mime_type}")
                     return {'status': 'error', 'message': f"Tipo de anexo não permitido: {sanitized_filename}"}
@@ -177,18 +182,18 @@ async def send_email_task(email_data, base_url):
 
         logger.debug(f"HTML gerado para o e-mail: {html_message}")
         
-        # Envia o e-mail
-        with smtplib.SMTP(Config.SMTP_SERVER, Config.SMTP_PORT, timeout=10) as servidor:
-            servidor.starttls()
-            logger.info(f"Tentando login com {Config.EMAIL_SENDER}...")
-            servidor.login(Config.EMAIL_SENDER, Config.EMAIL_PASSWORD)
-            servidor.send_message(msg)
+        # Envia o e-mail de forma assíncrona
+        client = aiosmtplib.SMTP(hostname=Config.SMTP_SERVER, port=Config.SMTP_PORT, use_tls=False)
+        async with client:
+            await client.starttls()
+            await client.login(Config.EMAIL_SENDER, Config.EMAIL_PASSWORD)
+            await client.send_message(msg)
             logger.info(f"E-mail enviado para {', '.join(to)}")
 
         await asyncio.sleep(Config.SECONDS_PER_EMAIL)
         return {'status': 'success', 'message': 'E-mail enviado com sucesso!'}
 
-    except smtplib.SMTPAuthenticationError as e:
+    except aiosmtplib.SMTPAuthenticationError as e:
         logger.error(f"Erro de autenticação SMTP: {e}")
         return {'status': 'error', 'message': f"Erro de autenticação: {str(e)}"}
     except Exception as e:
