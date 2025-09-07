@@ -1,117 +1,114 @@
-# HyperXMail - E-mail Marketing & Campaign Tracking
+# HyperXMail: Ferramenta de E-mail Marketing e Rastreamento de Campanhas
 
-HyperXMail is a powerful, futuristic-themed bulk email sending application with advanced campaign tracking features. Built with Flask, it provides a web interface to compose, send, and monitor email campaigns, including open and click tracking.
+HyperXMail é uma aplicação web robusta construída com Flask, projetada para o envio de e-mails em massa, gerenciamento de campanhas e rastreamento detalhado de interações. É uma solução ideal para desenvolvedores e pequenas equipes que precisam de uma ferramenta de e-mail marketing auto-hospedada e personalizável.
 
-## Features
+## Funcionalidades
 
-- **Bulk Email Sending:** Send emails to a large number of recipients via SMTP.
-- **Campaign Tracking:** Track email opens and clicks for each campaign.
-- **Detailed Reports:** View detailed reports for each campaign, including open and click rates.
-- **Rich Text Editor:** Compose beautiful HTML emails with a rich text editor.
-- **Email Templates:** Save and load email templates to streamline your workflow.
-- **Attachment Support:** Send attachments (images and PDFs) with a size limit of 10MB per file.
-- **Embedded Images:** Embed images directly into the email body using `cid`.
-- **CSV Upload:** Upload a CSV file with a list of recipients.
-- **Secure:**
-    - **CSRF Protection:** Built-in CSRF protection to prevent cross-site request forgery attacks.
-    - **Input Sanitization:** All user inputs are sanitized to prevent XSS attacks.
-    - **Rate Limiting:** Limits the number of emails sent per hour to prevent abuse.
+- **Envio de E-mail em Massa**: Envie e-mails para um grande número de destinatários usando um servidor SMTP configurado.
+- **Rastreamento de Campanhas**: Monitore o desempenho de suas campanhas com rastreamento de aberturas e cliques.
+- **Relatórios Detalhados**: Visualize relatórios por campanha, incluindo taxas de abertura e de cliques.
+- **Editor Rich Text**: Componha e-mails em HTML usando um editor WYSIWYG integrado.
+- **Gerenciamento de Templates**: Salve e carregue templates de e-mail para agilizar a criação de campanhas.
+- **Suporte a Anexos**: Envie anexos nos formatos JPG, PNG e PDF (limite de 10MB por arquivo).
+- **Imagens Embutidas**: Incorpore imagens diretamente no corpo do e-mail usando `cid` para uma melhor experiência do usuário.
+- **Upload de CSV**: Importe listas de destinatários facilmente a partir de arquivos CSV.
+- **Segurança**:
+  - **Proteção CSRF**: Integrado com Flask-WTF para prevenir ataques de Cross-Site Request Forgery.
+  - **Sanitização de Entradas**: Todas as entradas do usuário, incluindo nomes de arquivos de anexos, são sanitizadas para prevenir ataques de Cross-Site Scripting (XSS).
+  - **Limitação de Taxa**: Limita o número de requisições para proteger contra abuso.
 
-## Project Structure
+## Arquitetura da Aplicação
 
-hyperxmail/
-├── app/
-│   ├── init.py          # Flask app initialization
-│   ├── config.py            # Centralized configuration
-│   ├── email_utils.py       # Email sending and tracking logic
-│   ├── models.py            # SQLAlchemy database models
-│   ├── routes.py            # Flask routes definition
-│   ├── template_utils.py    # Template rendering utilities
-│   └── templates/
-│       ├── index.html       # Main application template
-│       └── reports.html     # Reports page template
-├── main.py                  # Main application entry point
-├── requirements.txt         # Project dependencies
-├── .env.example             # Example environment variables file
-└── README.md                # This file
+A aplicação segue uma arquitetura modular baseada no padrão de fábrica de aplicações Flask.
 
+- **Backend**:
+  - **Flask**: O micro-framework principal que gerencia as rotas, requisições e a lógica da aplicação.
+  - **SQLAlchemy & Flask-SQLAlchemy**: ORM para a interação com o banco de dados.
+  - **Flask-Migrate**: Gerencia as migrações do esquema do banco de dados, permitindo atualizações seguras.
+  - **SocketIO & Flask-SocketIO**: Fornece comunicação em tempo real via WebSockets para relatar o progresso do envio de e-mails.
+  - **Asyncio**: Utilizado para gerenciar tarefas de envio de e-mail de forma concorrente.
 
-## Prerequisites
+- **Frontend**:
+  - **HTML5 / CSS3**: Estrutura e estilo da interface do usuário.
+  - **JavaScript (Vanilla)**: Manipulação do DOM, interações do usuário e comunicação com o backend via `fetch` e WebSockets.
+  - **TinyMCE**: Editor de texto rico para a composição de e-mails.
 
-- Python 3.8 or higher
-- An SMTP server (e.g., Office 365, Gmail)
-- SMTP credentials (email and password)
+- **Banco de Dados**:
+  - Utiliza SQLite por padrão para desenvolvimento, mas pode ser facilmente configurado para usar outros bancos de dados suportados pelo SQLAlchemy (ex: PostgreSQL, MySQL).
 
-## Installation
+## Instalação
 
-1.  **Clone the repository:**
-    ```bash
-    git clone <REPOSITORY_URL>
-    cd hyperxmail
-    ```
+Siga os passos abaixo para configurar e executar o ambiente de desenvolvimento local.
 
-2.  **Create and activate a virtual environment:**
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
-    ```
+**Pré-requisitos**:
+- Python 3.8+
+- Um servidor SMTP (ex: Gmail, SendGrid, etc.)
 
-3.  **Install the dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
+**1. Clone o Repositório**
+```bash
+git clone <URL_DO_REPOSITORIO>
+cd hyperxmail
+```
 
-4.  **Configure the environment variables:**
-    Create a `.env` file in the root of the project with the following content:
-    ```
-    EMAIL_SENDER=your-email@domain.com
-    EMAIL_PASSWORD=your-password
-    SMTP_SERVER=smtp.office365.com
-    SMTP_PORT=587
-    ```
-    - `EMAIL_SENDER`: The email address that will be used to send the emails.
-    - `EMAIL_PASSWORD`: The password for the email account (for Office 365, it might be an app password).
-    - `SMTP_SERVER`: The SMTP server address (e.g., `smtp.office365.com` for Office 365).
-    - `SMTP_PORT`: The SMTP server port (usually 587 for TLS).
+**2. Crie e Ative um Ambiente Virtual**
+```bash
+python -m venv venv
+source venv/bin/activate  # No Windows: venv\Scripts\activate
+```
 
-## How to Use
+**3. Instale as Dependências**
+```bash
+pip install -r requirements.txt
+```
 
-**Warning:** The following command will run the application using Flask's development server. This is not suitable for production environments. For production, you should use a production-ready WSGI server like Gunicorn or uWSGI.
+## Configuração
 
-1.  **Run the application:**
-    ```bash
-    python main.py
-    ```
-    The server will start at `http://127.0.0.1:5000`.
+A aplicação utiliza um arquivo `.env` para gerenciar as variáveis de ambiente.
 
-2.  **Access the web interface:**
-    Open your browser and go to `http://127.0.0.1:5000`.
+**1. Crie o arquivo `.env`**
+Copie o exemplo abaixo e crie um arquivo chamado `.env` na raiz do projeto.
 
-3.  **Compose and send emails:**
-    - **Recipients:** Type email addresses manually (press Enter to add) or upload a CSV file with a list of emails (one per line).
-    - **Subject:** Enter the email subject.
-    - **CC and BCC:** (Optional) Add CC or BCC recipients, separated by commas.
-    - **Message:** Compose your message using the rich text editor. You can embed images by uploading them as attachments and then inserting them into the message.
-    - **Attachments:** Click on "Attach Files" to add images or PDFs (max 10MB per file).
-    - **Templates:** Save your message as a template or load an existing template.
-    - **Send:** Click on "Send Broadcast" to send the emails.
+```env
+# Chave secreta para a aplicação Flask (mude para um valor seguro)
+SECRET_KEY='uma-chave-super-secreta-e-longa'
 
-4.  **View reports:**
-    Click on the "Reports" button to view the campaign reports. You can see the open and click rates for each campaign.
+# URI do Banco de Dados (padrão para SQLite)
+SQLALCHEMY_DATABASE_URI='sqlite:///app.db'
 
-## Troubleshooting
+# Configurações do Servidor SMTP
+EMAIL_SENDER='seu-email@dominio.com'
+EMAIL_PASSWORD='sua-senha-de-app-ou-normal'
+SMTP_SERVER='smtp.seu-provedor.com'
+SMTP_PORT=587
+```
 
--   **SMTP Authentication Error:**
-    -   Double-check your `EMAIL_SENDER` and `EMAIL_PASSWORD` in the `.env` file.
-    -   For some email providers (like Office 365), you might need to use an "app password" instead of your regular password.
--   **Emails not being sent:**
-    -   Check the console logs for any error messages.
-    -   Make sure your SMTP server is accessible and that you haven't exceeded the hourly sending limit.
+**2. Configure as Variáveis**
+- `SECRET_KEY`: Uma string longa e aleatória usada para proteger sessões e cookies.
+- `SQLALCHEMY_DATABASE_URI`: A string de conexão para o banco de dados. O padrão `sqlite:///app.db` cria um arquivo de banco de dados SQLite na raiz do projeto.
+- `EMAIL_SENDER`: O endereço de e-mail que será usado como remetente.
+- `EMAIL_PASSWORD`: A senha para a conta de e-mail. Para serviços como o Gmail, pode ser necessário gerar uma "Senha de App".
+- `SMTP_SERVER`: O endereço do seu servidor SMTP.
+- `SMTP_PORT`: A porta do seu servidor SMTP (geralmente 587 para TLS ou 465 para SSL).
 
-## Contributing
+## Execução da Aplicação
 
-Feel free to open issues or pull requests with improvements or fixes!
+**1. Aplique as Migrações do Banco de Dados**
+Com o ambiente virtual ativado, execute o seguinte comando para criar as tabelas do banco de dados:
+```bash
+flask db upgrade
+```
+Este comando aplica a migração mais recente do banco de dados. Você deve executá-lo sempre que houver novas migrações.
 
-## License
+**2. Inicie o Servidor de Desenvolvimento**
+```bash
+python main.py
+```
+A aplicação estará disponível em `http://127.0.0.1:5000`.
 
-This project is licensed under the MIT License.
+**Aviso**: O servidor de desenvolvimento do Flask não é recomendado para produção. Para implantação em produção, utilize um servidor WSGI robusto como Gunicorn ou uWSGI.
+
+## Melhorias Futuras
+
+- **Otimização de I/O**: A função de envio de e-mails (`send_email_task`) atualmente utiliza a biblioteca síncrona `smtplib`. Para melhorar o desempenho e aproveitar totalmente o `asyncio`, a implementação pode ser migrada para uma biblioteca SMTP assíncrona, como a `aiosmtplib`.
+- **Validação de Anexos**: A validação do tipo de anexo atualmente se baseia na extensão do arquivo. Uma abordagem mais segura seria inspecionar os "magic numbers" do arquivo para verificar seu tipo MIME real.
+- **Testes Unitários**: Expandir a suíte de testes para cobrir todas as funcionalidades críticas, incluindo o envio de e-mails, manipulação de anexos e as novas rotas de templates.

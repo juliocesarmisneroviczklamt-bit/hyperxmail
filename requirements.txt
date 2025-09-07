@@ -9,3 +9,5 @@ Flask-SQLAlchemy
 SQLAlchemy
 beautifulsoup4
 Flask-Testing
+Flask-Migrate
+python-dotenv

@@ -4,12 +4,14 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from .config import Config
 from .routes import init_routes
 
 # Cria a instância do SocketIO e do SQLAlchemy
 socketio = SocketIO()
 db = SQLAlchemy()
+migrate = Migrate()
 
 def create_app(testing=False):
     """
@@ -38,8 +40,9 @@ def create_app(testing=False):
     if not testing:
         CSRFProtect(app)
 
-    # Inicializa o banco de dados
+    # Inicializa o banco de dados e o Migrate
     db.init_app(app)
+    migrate.init_app(app, db)
 
     # Configura o Flask-Limiter para limitar requisições (se não estiver em modo de teste)
     if not testing:
@@ -52,8 +55,5 @@ def create_app(testing=False):
     init_routes(app)
 
     from . import models
-
-    with app.app_context():
-        db.create_all()
 
     return app, socketio
