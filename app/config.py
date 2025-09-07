@@ -1,27 +1,28 @@
 from decouple import config
+import os
 
 class Config:
     """
     Configurações centralizadas para a aplicação.
     """
-    # Tamanho máximo permitido para anexos (10MB)
-    MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024
-
-    # Limite de e-mails por hora
-    EMAILS_PER_HOUR = config('EMAILS_PER_HOUR', default=500, cast=int)
-
-    # Tempo entre envios de e-mails (em segundos)
-    SECONDS_PER_EMAIL = 3600 / EMAILS_PER_HOUR
-
-    # Credenciais e configurações de e-mail
-    EMAIL_SENDER = config('EMAIL_SENDER', default='pedidos@biamar.com.br')
-    EMAIL_PASSWORD = config('EMAIL_PASSWORD')
-    SMTP_SERVER = config('SMTP_SERVER', default='smtp.office365.com')
-    SMTP_PORT = config('SMTP_PORT', default=587, cast=int)
-
-    # Chave secreta para o Flask (necessária para CSRF)
-    SECRET_KEY = config('SECRET_KEY')
+    # Chave secreta para o Flask (necessária para CSRF e sessões)
+    SECRET_KEY = config('SECRET_KEY', default=os.urandom(24).hex())
 
     # Configurações do Banco de Dados
     SQLALCHEMY_DATABASE_URI = config('SQLALCHEMY_DATABASE_URI', default='sqlite:///tracking.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Credenciais e configurações de e-mail
+    EMAIL_SENDER = config('EMAIL_SENDER')
+    EMAIL_PASSWORD = config('EMAIL_PASSWORD')
+    SMTP_SERVER = config('SMTP_SERVER', default='smtp.office365.com')
+    SMTP_PORT = config('SMTP_PORT', default=587, cast=int)
+
+    # Limites de envio
+    EMAILS_PER_HOUR = config('EMAILS_PER_HOUR', default=500, cast=int)
+    SECONDS_PER_EMAIL = 3600 / EMAILS_PER_HOUR
+
+    # Configurações de segurança dos cookies
+    SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
