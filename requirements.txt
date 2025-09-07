@@ -4,7 +4,6 @@ python-decouple
 bleach
 Flask-Limiter
 Flask-WTF
-python-dotenv
 Flask-SocketIO
 Flask-SQLAlchemy
 SQLAlchemy

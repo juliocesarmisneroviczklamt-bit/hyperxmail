@@ -8,7 +8,7 @@ class Config:
     MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024
 
     # Limite de e-mails por hora
-    EMAILS_PER_HOUR = 500
+    EMAILS_PER_HOUR = config('EMAILS_PER_HOUR', default=500, cast=int)
 
     # Tempo entre envios de e-mails (em segundos)
     SECONDS_PER_EMAIL = 3600 / EMAILS_PER_HOUR
@@ -20,12 +20,11 @@ class Config:
     SMTP_PORT = config('SMTP_PORT', default=587, cast=int)
 
     # Token de API para autenticação
-    API_TOKEN = config('API_TOKEN', default='pinguinsdemadagascar')
+    API_TOKEN = config('API_TOKEN')
 
     # Chave secreта para o Flask
-    SECRET_KEY = config('SECRET_KEY', default='sua-chave-secreta-aqui')
+    SECRET_KEY = config('SECRET_KEY')
 
     # Configurações do Banco de Dados
     SQLALCHEMY_DATABASE_URI = config('SQLALCHEMY_DATABASE_URI', default='sqlite:///tracking.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    WTF_CSRF_ENABLED = False

@@ -193,7 +193,7 @@ async def send_email_task(email_data, base_url):
 async def send_bulk_emails(subject, cc, bcc, message, attachments, base_url, csv_content=None, manual_emails=None):
     from . import db
     from .models import Campaign, Email
-
+    from app import socketio
     # Cria uma nova campanha
     new_campaign = Campaign(subject=subject, message=message)
     db.session.add(new_campaign)
@@ -214,7 +214,6 @@ async def send_bulk_emails(subject, cc, bcc, message, attachments, base_url, csv
     Returns:
         dict: Resultado do envio em massa com status e mensagem.
     """
-    from app import socketio  # Importação tardia para evitar import circular
     try:
         # Extrai e-mails do CSV e da lista manual
         all_emails = set()

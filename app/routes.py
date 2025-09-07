@@ -1,10 +1,10 @@
 import logging
 import bleach
-from flask import jsonify, make_response, request  # Adicionada a importação de request
+from flask import jsonify, make_response, request, redirect, session, flash
 from .email_utils import check_smtp_credentials, send_bulk_emails
-from .templates import get_index_template
-from flask import redirect, jsonify
+from .template_utils import get_index_template, get_reports_template
 import base64
+
 
 # Configura o logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -26,6 +26,27 @@ def check_auth(token, expected_token):
 def init_routes(app):
     # 1x1 transparent GIF
     PIXEL_GIF_DATA = base64.b64decode(b'R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==')
+
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        if request.method == 'POST':
+            token = request.form.get('token')
+            if check_auth(token, app.config['API_TOKEN']):
+                session['authenticated'] = True
+                return redirect('/')
+            else:
+                flash('Invalid token', 'danger')
+        return """
+        <form method="post">
+            Token: <input type="password" name="token">
+            <input type="submit" value="Login">
+        </form>
+        """
+
+    @app.route('/logout')
+    def logout():
+        session.pop('authenticated', None)
+        return redirect('/login')
 
     @app.route('/track/open/<email_id>')
     def track_open(email_id):
@@ -111,11 +132,12 @@ def init_routes(app):
         Returns:
             str: HTML renderizado da interface.
         """
-        return get_index_template(app.config['API_TOKEN'])
+        if not session.get('authenticated'):
+            return redirect('/login')
+        return get_index_template()
 
     @app.route('/reports')
     def reports():
-        from .templates import get_reports_template
         return get_reports_template()
 
     @app.route('/send_email', methods=['POST'])
@@ -134,10 +156,7 @@ def init_routes(app):
             return make_response(jsonify({'status': 'error', 'message': 'Falha na autenticação SMTP.'}), 500)
 
         # Verifica a autenticação
-        auth_token = request.headers.get('Authorization')
-        logger.debug(f"Token de autenticação recebido: {auth_token}")
-        if not auth_token or not check_auth(auth_token, app.config['API_TOKEN']):
-            logger.error(f"Falha na autenticação: Token recebido={auth_token}, esperado={app.config['API_TOKEN']}")
+        if not session.get('authenticated'):
             return make_response(jsonify({'status': 'error', 'message': 'Unauthorized'}), 401)
 
         try:
@@ -151,6 +170,19 @@ def init_routes(app):
             cc = bleach.clean(data.get('cc', ''))
             bcc = bleach.clean(data.get('bcc', ''))
             message = data.get('message', '')
+            allowed_tags = list(bleach.sanitizer.ALLOWED_TAGS) + [
+                'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span',
+                'img', 'a', 'code'
+            ]
+            allowed_attributes = {
+                '*': ['style'],
+                'img': ['src', 'alt', 'title', 'width', 'height'],
+                'a': ['href', 'target', 'title'],
+                'td': ['align'],
+                'th': ['align']
+            }
+            message = bleach.clean(message, tags=allowed_tags, attributes=allowed_attributes)
             attachments = data.get('attachments', [])
             csv_content = data.get('csvContent', '')
             manual_emails = data.get('manualEmails', [])
