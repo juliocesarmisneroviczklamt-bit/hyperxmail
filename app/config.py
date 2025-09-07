@@ -22,6 +22,9 @@ class Config:
     EMAILS_PER_HOUR = config('EMAILS_PER_HOUR', default=500, cast=int)
     SECONDS_PER_EMAIL = 3600 / EMAILS_PER_HOUR
 
+    # Chave da API do TinyMCE
+    TINYMCE_API_KEY = config('TINYMCE_API_KEY', default='no-api-key')
+
     # Configurações de segurança dos cookies
     SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
     SESSION_COOKIE_HTTPONLY = True
