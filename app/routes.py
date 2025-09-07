@@ -17,7 +17,8 @@ def init_routes(app):
 
     @app.route('/')
     def index():
-        return render_template('index.html')
+        tinymce_api_key = app.config.get('TINYMCE_API_KEY', 'no-api-key')
+        return render_template('index.html', tinymce_api_key=tinymce_api_key)
 
     @app.route('/reports')
     def reports():

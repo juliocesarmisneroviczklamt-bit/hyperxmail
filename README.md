@@ -80,6 +80,9 @@ EMAIL_SENDER='seu-email@dominio.com'
 EMAIL_PASSWORD='sua-senha-de-app-ou-normal'
 SMTP_SERVER='smtp.seu-provedor.com'
 SMTP_PORT=587
+
+# Chave da API do TinyMCE (opcional, mas recomendado)
+TINYMCE_API_KEY='sua-chave-de-api-do-tinymce'
 ```
 
 **2. Configure as Variáveis**
@@ -89,6 +92,7 @@ SMTP_PORT=587
 - `EMAIL_PASSWORD`: A senha para a conta de e-mail. Para serviços como o Gmail, pode ser necessário gerar uma "Senha de App".
 - `SMTP_SERVER`: O endereço do seu servidor SMTP.
 - `SMTP_PORT`: A porta do seu servidor SMTP (geralmente 587 para TLS ou 465 para SSL).
+- `TINYMCE_API_KEY`: A chave da API para o editor de texto TinyMCE. Você pode obter uma chave gratuita no site do TinyMCE.
 
 ## Execução da Aplicação
 
