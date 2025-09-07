@@ -107,7 +107,7 @@ def init_routes(app):
 
         data = request.get_json()
         subject = bleach.clean(data.get('subject', '')).strip()
-        message = data.get('message', '').strip()
+        message = bleach.clean(data.get('message', '')).strip()
         csv_content = data.get('csvContent', '')
         manual_emails = data.get('manualEmails', [])
 
