@@ -1,0 +1,3 @@
+document.addEventListener('DOMContentLoaded', () => {
+    // ... (todo o seu JavaScript vai aqui, começando por "particlesJS(...)") ...
+});
