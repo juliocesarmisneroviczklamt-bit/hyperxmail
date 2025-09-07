@@ -22,6 +22,9 @@ def create_app():
 
     # Configurações
     app.config.from_object(Config)
+    
+    # Define a chave secreta para segurança do CSRF
+    app.secret_key = Config.SECRET_KEY
 
     # Inicializa o CSRF para proteção contra ataques
     CSRFProtect(app)
