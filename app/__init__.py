@@ -19,7 +19,6 @@ def create_app():
         tuple: Instância configurada do Flask e do SocketIO.
     """
     app = Flask(__name__)
-    app.secret_key = Config.SECRET_KEY  # Define a chave secreta para segurança
 
     # Configurações
     app.config.from_object(Config)
