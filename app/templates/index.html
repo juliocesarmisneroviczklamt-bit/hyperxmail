@@ -17,7 +17,9 @@
     <div class="container">
         <h1>hyperxmail</h1>
         <form id="emailForm">
+            {% if csrf_token %}
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% endif %}
             <div id="email-tags" aria-label="Destinatários">
                 <input type="text" id="to-input" placeholder="Adicione destinatários e pressione Enter..." aria-label="Adicionar destinatário">
             </div>
