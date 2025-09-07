@@ -19,6 +19,9 @@ class Config:
     SMTP_SERVER = config('SMTP_SERVER', default='smtp.office365.com')
     SMTP_PORT = config('SMTP_PORT', default=587, cast=int)
 
+    # Chave secreta para o Flask (necessária para CSRF)
+    SECRET_KEY = config('SECRET_KEY')
+
     # Configurações do Banco de Dados
     SQLALCHEMY_DATABASE_URI = config('SQLALCHEMY_DATABASE_URI', default='sqlite:///tracking.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
