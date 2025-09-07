@@ -25,14 +25,14 @@ class EmailTestCase(unittest.TestCase):
         """
         Tests that the send_email_task function sends an email successfully.
         """
-        # Mock the SMTP client
-        mock_smtp_instance = MagicMock()
-        mock_smtp_instance.connect = AsyncMock()
-        mock_smtp_instance.starttls = AsyncMock()
-        mock_smtp_instance.login = AsyncMock()
-        mock_smtp_instance.send_message = AsyncMock()
-        mock_smtp_instance.quit = AsyncMock()
-        mock_smtp.return_value = mock_smtp_instance
+        # Mock the async context manager
+        mock_smtp_context = AsyncMock()
+        mock_smtp_context.starttls = AsyncMock()
+        mock_smtp_context.login = AsyncMock()
+        mock_smtp_context.send_message = AsyncMock()
+
+        mock_smtp_instance = mock_smtp.return_value
+        mock_smtp_instance.__aenter__.return_value = mock_smtp_context
 
         # Prepare the email data
         email_data = (
@@ -53,7 +53,7 @@ class EmailTestCase(unittest.TestCase):
 
         # Assertions
         self.assertEqual(result['status'], 'success')
-        mock_smtp_instance.send_message.assert_called_once()
+        mock_smtp_context.send_message.assert_called_once()
 
     def test_attachment_validation_invalid_mime_type(self):
         """
