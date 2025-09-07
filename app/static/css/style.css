@@ -1,1 +1,180 @@
-a
+:root {
+    --bg-gradient-start: #101727;
+    --bg-gradient-end: #2c3e50;
+    --text-primary: #ecf0f1;
+    --accent-primary: #3498db;
+    --accent-secondary: #9b59b6;
+    --accent-glow: rgba(52, 152, 219, 0.4);
+    --container-bg: rgba(255, 255, 255, 0.08);
+    --container-border: rgba(255, 255, 255, 0.2);
+    --input-bg: rgba(0, 0, 0, 0.2);
+    --input-border: rgba(52, 152, 219, 0.5);
+    --success: #2ecc71;
+    --error: #e74c3c;
+    --disabled-bg: #566573;
+    --font-family: 'Poppins', sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font-family);
+    background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow-x: hidden;
+    color: var(--text-primary);
+}
+#particles-js { position: fixed; width: 100%; height: 100%; z-index: -1; }
+.container {
+    background: var(--container-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--container-border);
+    border-radius: 16px;
+    padding: 40px;
+    width: 80%;
+    max-width: 1400px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    animation: fadeIn 0.8s ease-in-out;
+    z-index: 1;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+h1 {
+    color: var(--text-primary);
+    text-align: center;
+    font-size: clamp(24px, 5vw, 28px);
+    font-weight: 600;
+    margin-bottom: 30px;
+    letter-spacing: 1px;
+}
+input, textarea, select {
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 15px;
+    background: var(--input-bg);
+    border: 1px solid var(--container-border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s ease;
+    font-family: var(--font-family);
+}
+input:focus, textarea:focus, select:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 15px var(--accent-glow);
+}
+input.valid {
+    background-color: rgba(46, 204, 113, 0.1) !important;
+    border-color: var(--success) !important;
+}
+input.invalid {
+    background-color: rgba(231, 76, 60, 0.1) !important;
+    border-color: var(--error) !important;
+}
+textarea { height: 120px; resize: vertical; }
+button {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
+    border: none;
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+}
+button:disabled {
+    background: var(--disabled-bg);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+button:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+#progress-bar { width: 0; height: 4px; background-color: var(--accent-primary); border-radius: 2px; margin-top: 20px; transition: width 0.4s ease-in-out; }
+#status { text-align: center; margin-top: 20px; font-size: 15px; transition: opacity 0.3s ease; opacity: 0; height: 20px; }
+#status.active { opacity: 1; }
+#email-tags { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; background: var(--input-bg); border-radius: 8px; margin-bottom: 15px; }
+.tag { display: flex; align-items: center; background: var(--accent-primary); padding: 6px 12px; border-radius: 20px; color: var(--text-primary); font-size: 14px; }
+.tag.invalid { background: var(--error); }
+.tag button { all: unset; cursor: pointer; margin-left: 8px; font-size: 16px; line-height: 1; }
+#to-input { border: none; background: none; color: var(--text-primary); flex-grow: 1; min-width: 150px; padding: 0; margin: 0; }
+#log-area { margin-top: 20px; max-height: 150px; overflow-y: auto; background: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 15px; font-size: 13px; line-height: 1.6; }
+.log-success { color: var(--success); }
+.log-error { color: var(--error); }
+#attachment-input, #csv-input { display: none; }
+.file-input-label {
+    display: block;
+    padding: 15px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 15px;
+    transition: background 0.3s ease;
+}
+.file-input-label:hover { background: rgba(0,0,0,0.3); }
+.template-bar { display: flex; gap: 10px; margin-bottom: 15px; }
+.template-bar select { margin: 0; }
+.template-bar button { width: auto; padding: 0 25px; margin: 0; font-size: 14px; background: var(--accent-secondary); }
+.button-group { display: flex; gap: 10px; margin-top: 20px; }
+.button-group button { width: 100%; margin: 0; }
+.feather { width: 18px; height: 18px; margin-right: 8px; vertical-align: middle; }
+.tag .feather { width: 14px; height: 14px; margin-right: 0; }
+.file-input-label .feather { margin-right: 10px; }
+button:active:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 10px rgba(0,0,0,0.2); }
+.tag { transition: transform 0.2s ease; }
+.file-input-label:hover { background: rgba(0,0,0,0.3); }
+#status.active { animation: fadeInOut 5s ease-in-out; }
+@keyframes fadeInOut {
+    0%, 100% { opacity: 0; }
+    10%, 90% { opacity: 1; }
+}
+.button-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 25px;
+    font-size: 14px;
+    background: var(--accent-secondary);
+    color: var(--text-primary);
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    height: 50px;
+}
+.button-link:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Tablet */
+@media (max-width: 992px) {
+    .container {
+        padding: 30px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+    body {
+        align-items: flex-start;
+        padding-top: 20px;
+    }
+    .container {
+        padding: 20px;
+        width: 95%;
+        margin-bottom: 20px;
+    }
+    h1 { font-size: 22px; }
+    input, textarea, select, button { font-size: 14px; padding: 12px; }
+    .template-bar { flex-direction: column; }
+    .button-group { flex-direction: column; }
+}
