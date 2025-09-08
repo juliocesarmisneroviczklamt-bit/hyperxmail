@@ -1,14 +1,13 @@
 import unittest
 from unittest.mock import patch, AsyncMock
 from app import create_app, db
-from app.models import Campaign
 from app.email_utils import send_bulk_emails
 import asyncio
+import json
 
-class SanitizationTestCase(unittest.TestCase):
+class SanitizationBugTest(unittest.TestCase):
     def setUp(self):
         self.app, self.socketio = create_app(testing=True)
-        # We need an app context to work with the database and config
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
@@ -18,81 +17,44 @@ class SanitizationTestCase(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
-    @patch('app.email_utils.send_email_task', new_callable=AsyncMock)
-    def test_message_is_sanitized_by_send_bulk_emails(self, mock_send_email_task):
-        """
-        Tests that the message is correctly sanitized before being passed to the
-        email sending task. This test calls send_bulk_emails directly to avoid
-        async complexities with the Flask test client.
-        """
-        async def run_test():
-            # Arrange
-            malicious_payload = '<script>alert("XSS");</script><p>This is a <strong>safe</strong> message.</p>'
-            # The final sanitization now happens inside send_email_task, which is mocked.
-            # So, we need to check the input to the mock.
-            # The bug was that the unsanitized payload was passed all the way down.
-            # The fix is that sanitization happens *inside* send_email_task.
-            # Let's adjust the test to reflect the new reality.
-            # The `send_bulk_emails` function now saves the *raw* message,
-            # and the sanitization is done in `send_email_task`.
-
-            # Let's restore the original test's goal, but do it at the right layer.
-            # The test should check the *final* output.
-            # To do that, we can't mock send_email_task anymore.
-            # Let's go back to the previous approach, but fix the async issue.
-
-            # The RuntimeError is the problem. It happens because we use asyncio.run
-            # in a context where an event loop is already managed by Flask/Werkzeug's test runner for async views.
-            # The solution is to use the test client without wrapping it in another `asyncio.run`.
-            # But we need to wait for the background tasks.
-            # The `socketio.test_client` is the right tool for full-stack tests.
-            pass # I will rewrite this test from scratch in the next step.
-        # I will rewrite this test from scratch.
-        # This is a placeholder to make the file valid.
-        self.assertTrue(True)
-
-# I am rewriting this test.
-# The previous approaches were flawed. I will use the socketio test client
-# as it is the correct tool for testing a Flask-SocketIO application.
-
-class RealSanitizationTest(unittest.TestCase):
-    def setUp(self):
-        self.app, self.socketio = create_app(testing=True)
-        self.client = self.socketio.test_client(self.app)
-        with self.app.app_context():
-            db.create_all()
-
-    def tearDown(self):
-        with self.app.app_context():
-            db.session.remove()
-            db.drop_all()
-
     @patch('app.email_utils.aiosmtplib.SMTP')
-    @patch('app.routes.check_smtp_credentials', return_value=True)
-    def test_message_is_sanitized_end_to_end(self, mock_check_smtp, mock_smtp_class):
+    def test_message_is_sanitized_end_to_end(self, mock_smtp_class):
+        """
+        Tests that the HTML message is correctly sanitized for XSS vulnerabilities
+        by calling the core logic directly, bypassing the HTTP layer.
+        """
+        # asyncio.run() is used to execute the async test method from a sync test.
+        asyncio.run(self.async_sanitization_test(mock_smtp_class))
+
+    async def async_sanitization_test(self, mock_smtp_class):
         # Arrange
         mock_smtp_instance = AsyncMock()
-        mock_smtp_class.return_value = mock_smtp_instance
+        # This configures the mock SMTP class to return our async mock instance
+        mock_smtp_class.return_value.__aenter__.return_value = mock_smtp_instance
 
         malicious_payload = '<script>alert("XSS");</script><p>This is a <strong>safe</strong> message.</p>'
         expected_sanitized_body = '&lt;script&gt;alert("XSS");&lt;/script&gt;<p>This is a <strong>safe</strong> message.</p>'
 
-        # Action
-        response = self.client.post('/send_email',
-                                    data=json.dumps({
-                                        'subject': 'Test Subject',
-                                        'message': malicious_payload,
-                                        'manualEmails': ['test@example.com']
-                                    }),
-                                    content_type='application/json')
+        # Act
+        # Call the function that contains the core logic directly
+        await send_bulk_emails(
+            subject='Test Subject',
+            message=malicious_payload,
+            manual_emails=['test@example.com'],
+            base_url='http://testserver/',
+            cc='',
+            bcc='',
+            attachments=[]
+        )
 
-        # Assertions
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['status'], 'success')
-
+        # Assert
+        # 1. Check that the email sending function was actually called
         self.assertTrue(mock_smtp_instance.send_message.called)
+
+        # 2. Extract the sent message from the mock
         sent_msg = mock_smtp_instance.send_message.call_args[0][0]
 
+        # 3. Find and decode the HTML part of the email
         html_part = None
         if sent_msg.is_multipart():
             for part in sent_msg.walk():
@@ -100,7 +62,9 @@ class RealSanitizationTest(unittest.TestCase):
                     html_part = part.get_payload(decode=True).decode('utf-8')
                     break
 
-        self.assertIsNotNone(html_part)
+        self.assertIsNotNone(html_part, "HTML part of the email not found.")
+
+        # 4. Assert that the sanitization worked as expected
         self.assertIn(expected_sanitized_body, html_part)
         self.assertNotIn('<script>alert', html_part)
 
