@@ -47,7 +47,11 @@ def sanitize_filename(filename):
     Returns:
         str: O nome do arquivo sanitizado.
     """
-    return re.sub(r'[^a-zA-Z0-9._-]', '', filename)
+    # Define the set of allowed characters
+    allowed_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-"
+
+    # Filter the filename to keep only allowed characters
+    return ''.join(c for c in filename if c in allowed_chars)
 
 async def check_smtp_credentials():
     """Verifica de forma assíncrona a validade das credenciais SMTP.

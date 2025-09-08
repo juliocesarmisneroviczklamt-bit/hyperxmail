@@ -1,4 +1,5 @@
 import bleach
+from bleach.css_sanitizer import CSSSanitizer
 
 def sanitize_html(html_content):
     """
@@ -17,12 +18,16 @@ def sanitize_html(html_content):
 
     allowed_protocols = list(bleach.sanitizer.ALLOWED_PROTOCOLS) + ['cid']
 
+    # Allow color and font-weight properties in style attributes
+    css_sanitizer = CSSSanitizer(allowed_css_properties=['color', 'font-weight'])
+
     sanitized_content = bleach.clean(
         html_content,
         tags=allowed_tags,
         attributes=allowed_attributes,
         protocols=allowed_protocols,
-        strip=False  # Escapes disallowed tags instead of stripping them, which is safer.
+        strip=False,  # Escapes disallowed tags instead of stripping them, which is safer.
+        css_sanitizer=css_sanitizer
     )
 
     return sanitized_content
