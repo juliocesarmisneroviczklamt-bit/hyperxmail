@@ -11,7 +11,7 @@ def is_safe_url(target):
     """
     ref_url = urlparse(request.host_url)
     test_url = urlparse(urljoin(request.host_url, target))
-    return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
+    return test_url.scheme in ("http", "https") and ref_url.netloc == test_url.netloc
 
 
 def sanitize_html(html_content):
@@ -20,19 +20,43 @@ def sanitize_html(html_content):
     suitable for rich text emails.
     """
     allowed_tags = list(bleach.sanitizer.ALLOWED_TAGS) + [
-        'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span',
-        'img', 'a', 'code'
+        "p",
+        "br",
+        "strong",
+        "em",
+        "u",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "ul",
+        "ol",
+        "li",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "th",
+        "td",
+        "span",
+        "img",
+        "a",
+        "code",
     ]
     allowed_attributes = {
-        '*': ['style'], 'img': ['src', 'alt', 'title', 'width', 'height'],
-        'a': ['href', 'target', 'title'], 'td': ['align'], 'th': ['align']
+        "*": ["style"],
+        "img": ["src", "alt", "title", "width", "height"],
+        "a": ["href", "target", "title"],
+        "td": ["align"],
+        "th": ["align"],
     }
 
-    allowed_protocols = list(bleach.sanitizer.ALLOWED_PROTOCOLS) + ['cid']
+    allowed_protocols = list(bleach.sanitizer.ALLOWED_PROTOCOLS) + ["cid"]
 
     # Allow color and font-weight properties in style attributes
-    css_sanitizer = CSSSanitizer(allowed_css_properties=['color', 'font-weight'])
+    css_sanitizer = CSSSanitizer(allowed_css_properties=["color", "font-weight"])
 
     sanitized_content = bleach.clean(
         html_content,
@@ -40,7 +64,7 @@ def sanitize_html(html_content):
         attributes=allowed_attributes,
         protocols=allowed_protocols,
         strip=False,  # Escapes disallowed tags instead of stripping them, which is safer.
-        css_sanitizer=css_sanitizer
+        css_sanitizer=css_sanitizer,
     )
 
     return sanitized_content
