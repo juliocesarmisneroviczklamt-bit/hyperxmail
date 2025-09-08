@@ -195,5 +195,69 @@ class RoutesTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn(b'Todos os campos s', response.data)
 
+    def test_save_template_with_corrupted_json(self):
+        """
+        Tests that saving a template works even if the templates.json file is corrupted.
+        """
+        templates_file = os.path.join(self.app.root_path, '..', 'templates.json')
+        with open(templates_file, 'w') as f:
+            f.write('this is not valid json')
+
+        template_data = {'name': 'Good Template', 'content': '<p>Good content</p>'}
+        response = self.client.post('/templates',
+                                    data=json.dumps(template_data),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        # Verify the file was overwritten with good data
+        response = self.client.get('/templates')
+        self.assertEqual(response.status_code, 200)
+        templates = json.loads(response.data)
+        self.assertEqual(len(templates), 1)
+        self.assertEqual(templates[0]['name'], 'Good Template')
+
+    def test_track_open_invalid_email_id(self):
+        """
+        Tests that the track_open route handles a non-existent email_id gracefully.
+        """
+        invalid_email_id = str(uuid.uuid4())
+        response = self.client.get(f'/track/open/{invalid_email_id}')
+        self.assertEqual(response.status_code, 200) # Should still return the pixel
+        with self.app.app_context():
+            self.assertEqual(Open.query.count(), 0) # No open should be recorded
+
+    def test_track_click_invalid_email_id(self):
+        """
+        Tests that the track_click route handles a non-existent email_id gracefully.
+        """
+        invalid_email_id = str(uuid.uuid4())
+        url_to_track = 'http://example.com'
+        response = self.client.get(f'/track/click/{invalid_email_id}?url={url_to_track}')
+        self.assertEqual(response.status_code, 302) # Should still redirect
+        self.assertEqual(response.location, url_to_track)
+        with self.app.app_context():
+            self.assertEqual(Click.query.count(), 0) # No click should be recorded
+
+    @patch('app.routes.check_smtp_credentials', new_callable=AsyncMock)
+    @patch('app.routes.send_bulk_emails', new_callable=AsyncMock)
+    def test_send_email_internal_error(self, mock_send_bulk_emails, mock_check_smtp):
+        """
+        Tests that a generic exception in send_bulk_emails returns a 500 error.
+        """
+        mock_check_smtp.return_value = True
+        mock_send_bulk_emails.side_effect = Exception("A critical error occurred")
+
+        email_data = {
+            'subject': 'Test Subject',
+            'message': 'Test Message',
+            'manualEmails': ['test@example.com']
+        }
+        response = self.client.post('/send_email',
+                                    data=json.dumps(email_data),
+                                    content_type='application/json')
+
+        self.assertEqual(response.status_code, 500)
+        self.assertIn(b'Erro interno no servidor', response.data)
+
 if __name__ == '__main__':
     unittest.main()

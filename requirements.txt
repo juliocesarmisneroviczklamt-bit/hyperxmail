@@ -13,3 +13,4 @@ Flask-Migrate
 python-dotenv
 aiosmtplib
 python-magic
+tinycss2
