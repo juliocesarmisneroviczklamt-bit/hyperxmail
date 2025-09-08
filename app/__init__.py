@@ -56,9 +56,8 @@ def create_app(testing=False):
     # Define a chave secreta para segurança do CSRF e sessões
     app.secret_key = Config.SECRET_KEY
 
-    # Inicializa a proteção CSRF, exceto em modo de teste
-    if not testing:
-        CSRFProtect(app)
+    # Inicializa a proteção CSRF
+    CSRFProtect(app)
 
     # Inicializa o SQLAlchemy e o Flask-Migrate com a aplicação
     db.init_app(app)
