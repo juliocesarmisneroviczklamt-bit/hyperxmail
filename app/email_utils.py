@@ -125,6 +125,11 @@ async def send_email_task(email_data, base_url):
         # Parse the HTML message once to allow for robust modifications.
         soup = BeautifulSoup(message, 'html.parser')
 
+        # Sanitize 'title' attributes to prevent XSS from HTML content within them.
+        for tag in soup.find_all(title=True):
+            # We clean the title attribute by stripping all tags from its content.
+            tag['title'] = bleach.clean(tag['title'], tags=[], strip=True)
+
         # Rewrite links for click tracking.
         for a in soup.find_all('a', href=True):
             # Only track absolute URLs.

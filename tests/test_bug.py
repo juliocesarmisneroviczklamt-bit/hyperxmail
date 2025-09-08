@@ -68,5 +68,44 @@ class SanitizationBugTest(unittest.TestCase):
         self.assertIn(expected_sanitized_body, html_part)
         self.assertNotIn('<script>alert', html_part)
 
+    @patch('app.email_utils.aiosmtplib.SMTP')
+    def test_html_in_attribute_is_escaped(self, mock_smtp_class):
+        """
+        Tests that HTML inside an attribute (like 'title') is properly escaped.
+        """
+        asyncio.run(self.async_html_in_attribute_test(mock_smtp_class))
+
+    async def async_html_in_attribute_test(self, mock_smtp_class):
+        # Arrange
+        mock_smtp_instance = AsyncMock()
+        mock_smtp_class.return_value.__aenter__.return_value = mock_smtp_instance
+
+        malicious_payload = '<a href="http://example.com" title="<img src=x onerror=alert(1)>">Click me</a>'
+
+        # Act
+        await send_bulk_emails(
+            subject='Test Subject',
+            message=malicious_payload,
+            manual_emails=['test@example.com'],
+            base_url='http://testserver/',
+            cc='',
+            bcc='',
+            attachments=[]
+        )
+
+        # Assert
+        sent_msg = mock_smtp_instance.send_message.call_args[0][0]
+        html_part = None
+        if sent_msg.is_multipart():
+            for part in sent_msg.walk():
+                if part.get_content_type() == 'text/html':
+                    html_part = part.get_payload(decode=True).decode('utf-8')
+                    break
+
+        self.assertIsNotNone(html_part, "HTML part of the email not found.")
+        self.assertNotIn("onerror", html_part)
+        self.assertIn('title=""', html_part)
+
+
 if __name__ == '__main__':
     unittest.main()
