@@ -23,6 +23,7 @@ import bleach
 import re
 from bs4 import BeautifulSoup
 from .config import Config
+from .utils import sanitize_html
 
 # Configuração do logging para este módulo.
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -172,7 +173,8 @@ async def send_email_task(email_data, base_url):
 
         # Attach the final, modified HTML to the email.
         final_html = str(soup)
-        html_part = MIMEText(final_html, 'html')
+        sanitized_html = sanitize_html(final_html)
+        html_part = MIMEText(sanitized_html, 'html')
         msg_related.attach(html_part)
         
         async with aiosmtplib.SMTP(hostname=Config.SMTP_SERVER, port=Config.SMTP_PORT, use_tls=False) as client:

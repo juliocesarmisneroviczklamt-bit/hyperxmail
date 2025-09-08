@@ -15,10 +15,13 @@ def sanitize_html(html_content):
         'a': ['href', 'target', 'title'], 'td': ['align'], 'th': ['align']
     }
 
+    allowed_protocols = list(bleach.sanitizer.ALLOWED_PROTOCOLS) + ['cid']
+
     sanitized_content = bleach.clean(
         html_content,
         tags=allowed_tags,
         attributes=allowed_attributes,
+        protocols=allowed_protocols,
         strip=False  # Escapes disallowed tags instead of stripping them, which is safer.
     )
 

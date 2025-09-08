@@ -242,7 +242,7 @@ def init_routes(app):
 
         data = request.get_json()
         subject = bleach.clean(data.get('subject', '')).strip()
-        message = sanitize_html(data.get('message', ''))
+        message = data.get('message', '')
         csv_content = data.get('csvContent', '')
         manual_emails = data.get('manualEmails', [])
 

@@ -39,7 +39,7 @@ class ImageEmbeddingTestCase(unittest.TestCase):
             mock_smtp_class.return_value.__aenter__.return_value = mock_smtp_instance
 
             # Arrange: Define test data
-            html_body = '<p>Check out this image:</p><img src="placeholder.jpg" alt="A nice picture">'
+            html_body = '<p>Check out this image:</p><img alt="A nice picture">'
             attachment = {
                 'name': 'test-image.png',
                 'data': TEST_IMAGE_B64
