@@ -405,8 +405,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(result.message || 'Erro desconhecido no servidor.');
             }
         } catch (error) {
-            showStatus(`Erro: ${error.message}`, false);
+            const errorMessage = `Erro: ${error.message}`;
+            showStatus(errorMessage, false);
             log(`Erro na conexão: ${error.message}`, 'error');
+            alert(errorMessage); // Adiciona um alerta para o usuário
         } finally {
             button.disabled = false;
             button.textContent = "ENVIAR BROADCAST"; // Revertido para o texto original do botão

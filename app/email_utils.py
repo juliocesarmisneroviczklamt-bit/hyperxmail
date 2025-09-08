@@ -13,6 +13,7 @@ import logging
 import aiosmtplib
 import tempfile
 import uuid
+import urllib.parse
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
@@ -110,50 +111,35 @@ async def send_email_task(email_data, base_url):
         msg['Subject'] = bleach.clean(subject)
         msg['From'] = Config.EMAIL_SENDER
         msg['To'] = ', '.join([bleach.clean(email) for email in to])
-        if cc: msg['Cc'] = bleach.clean(cc)
-        if bcc: msg['Bcc'] = bleach.clean(bcc)
+        if cc: msg['Cc'] = cc
+        if bcc: msg['Bcc'] = bcc
 
         msg_related = MIMEMultipart('related')
         msg.attach(msg_related)
 
-        allowed_tags = list(bleach.sanitizer.ALLOWED_TAGS) + [
-            'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-            'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span',
-            'img', 'a', 'code'
-        ]
-        allowed_attributes = {
-            '*': ['style'], 'img': ['src', 'alt', 'title', 'width', 'height'],
-            'a': ['href', 'target', 'title'], 'td': ['align'], 'th': ['align']
-        }
-        sanitized_message = bleach.clean(message, tags=allowed_tags, attributes=allowed_attributes)
-
-        soup = BeautifulSoup(sanitized_message, 'html.parser')
+        # A mensagem agora chega pré-sanitizada.
+        # Apenas adicionamos o rastreamento de cliques e aberturas.
+        soup = BeautifulSoup(message, 'html.parser')
         for a in soup.find_all('a', href=True):
-            a['href'] = f"{base_url}track/click/{email_id}?url={a['href']}"
-        sanitized_message = str(soup)
+            original_url = urllib.parse.quote(a['href'], safe='')
+            a['href'] = f"{base_url}track/click/{email_id}?url={original_url}"
 
-        tracking_pixel_url = f"{base_url}track/open/{email_id}"
-        sanitized_message += f'<img src="{tracking_pixel_url}" width="1" height="1" alt="">'
-
-        html_message = f'<html><body>{sanitized_message}</body></html>'
-        html_part = MIMEText(html_message, 'html')
-        msg_related.attach(html_part)
+        processed_message = str(soup)
+        html_body = processed_message
 
         if attachments:
             for i, att in enumerate(attachments):
                 sanitized_filename = sanitize_filename(att['name']) or "attachment"
                 cid = f'image-{uuid.uuid4()}'
 
-                if f'cid:image{i}' in sanitized_message:
-                    sanitized_message = sanitized_message.replace(f'cid:image{i}', f'cid:{cid}')
+                # Substitui os placeholders de imagem no corpo do HTML
+                if f'cid:image{i}' in html_body:
+                    html_body = html_body.replace(f'cid:image{i}', f'cid:{cid}')
                 else:
-                    sanitized_message = sanitized_message.replace(
+                    html_body = html_body.replace(
                         f'<img alt="{att["name"]}"', f'<img src="cid:{cid}" alt="{sanitized_filename}"'
                     )
                 
-                html_message = f'<html><body>{sanitized_message}</body></html>'
-                html_part.set_payload(html_message)
-
                 decoded_data = base64.b64decode(att['data'])
                 if len(decoded_data) > Config.MAX_ATTACHMENT_SIZE:
                     return {'status': 'error', 'message': f"Anexo {sanitized_filename} excede o limite de 10MB."}
@@ -178,6 +164,12 @@ async def send_email_task(email_data, base_url):
                         part = MIMEApplication(file.read(), Name=sanitized_filename)
                         part['Content-Disposition'] = f'attachment; filename="{sanitized_filename}"'
                         msg.attach(part)
+
+        # Adiciona o pixel de rastreamento e constrói o HTML final
+        tracking_pixel_html = f'<img src="{base_url}track/open/{email_id}" width="1" height="1" alt="">'
+        final_html = f'<html><body>{html_body}{tracking_pixel_html}</body></html>'
+        html_part = MIMEText(final_html, 'html')
+        msg_related.attach(html_part)
         
         async with aiosmtplib.SMTP(hostname=Config.SMTP_SERVER, port=Config.SMTP_PORT, use_tls=False) as client:
             await client.starttls()
