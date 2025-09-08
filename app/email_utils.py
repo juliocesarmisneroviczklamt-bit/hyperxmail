@@ -12,19 +12,24 @@ import os
 import base64
 import logging
 import aiosmtplib
-import tempfile
 import uuid
 import urllib.parse
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 from email.mime.application import MIMEApplication
-import magic
 import bleach
+import mimetypes
+import imghdr
 import re
 from bs4 import BeautifulSoup
 from .config import Config
 from .utils import sanitize_html
+
+try:
+    import magic  # type: ignore
+except Exception:  # pragma: no cover - library optional
+    magic = None
 
 # Configuração do logging para este módulo.
 logging.basicConfig(
@@ -57,6 +62,32 @@ def sanitize_filename(filename):
     # Filter the filename to keep only allowed characters
     return "".join(c for c in filename if c in allowed_chars)
 
+codex/analise-o-repositorio-btgqea
+
+def _detect_mime_type(data: bytes, filename: str) -> str:
+    """Determine the MIME type of a file.
+
+    Tries to use ``python-magic`` if available. Falls back to ``mimetypes`` and
+    ``imghdr`` so tests can run even when ``libmagic`` is missing.
+    """
+
+    if magic is not None:
+        try:
+            return magic.from_buffer(data, mime=True)
+        except Exception:
+            pass
+
+    mime, _ = mimetypes.guess_type(filename)
+    if mime:
+        return mime
+
+    img_type = imghdr.what(None, h=data)
+    if img_type:
+        return f"image/{img_type}"
+
+    return "application/octet-stream"
+
+ main
 
 async def check_smtp_credentials():
     """Verifica de forma assíncrona a validade das credenciais SMTP.
@@ -176,7 +207,11 @@ async def send_email_task(email_data, base_url):
                         "message": f"Anexo {sanitized_filename} excede o limite de 10MB.",
                     }
 
+ codex/analise-o-repositorio-btgqea
+                mime_type = _detect_mime_type(decoded_data, sanitized_filename)
+
                 mime_type = magic.from_buffer(decoded_data, mime=True)
+main
                 if mime_type not in ALLOWED_MIME_TYPES:
                     return {
                         "status": "error",
