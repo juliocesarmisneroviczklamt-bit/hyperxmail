@@ -10,7 +10,7 @@ import logging
 import bleach
 from flask import jsonify, make_response, request, redirect, render_template
 from .email_utils import check_smtp_credentials, send_bulk_emails
-from .utils import sanitize_html
+from .utils import sanitize_html, is_safe_url
 import base64
 import os
 import json
@@ -150,13 +150,13 @@ def init_routes(app):
 
         Returns:
             Response: Um redirecionamento para a URL de destino original.
-                      Retorna um erro 400 se a URL não for fornecida.
+                      Retorna um erro 400 se a URL não for fornecida ou for insegura.
         """
         from . import db
         from .models import Email, Click
         url = request.args.get('url')
-        if not url:
-            return "URL não fornecida", 400
+        if not url or not is_safe_url(url):
+            return "URL não fornecida ou insegura", 400
 
         email = db.session.get(Email, email_id)
         if email:

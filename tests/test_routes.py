@@ -36,6 +36,17 @@ class RoutesTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('Relatórios de Campanhas', response.data.decode('utf-8'))
 
+    def test_track_click_open_redirect(self):
+        # Testa a vulnerabilidade de open redirect
+        response = self.client.get('/track/click/some_id?url=http://example.com')
+        self.assertEqual(response.status_code, 400)
+
+    def test_track_click_safe_redirect(self):
+        # Testa um redirecionamento seguro
+        response = self.client.get('/track/click/some_id?url=/safe/path')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, '/safe/path')
+
     def test_get_templates_no_file(self):
         response = self.client.get('/templates')
         self.assertEqual(response.status_code, 200)
@@ -89,9 +100,9 @@ class RoutesTestCase(unittest.TestCase):
             db.session.commit()
             email_id = email.id
 
-        url_to_track = 'http://example.com'
+        url_to_track = '/some/path'
         response = self.client.get(f'/track/click/{email_id}?url={url_to_track}')
-        self.assertEqual(response.status_code, 302) # Redirect
+        self.assertEqual(response.status_code, 302)  # Redirect
         self.assertEqual(response.location, url_to_track)
 
         with self.app.app_context():
@@ -234,9 +245,9 @@ class RoutesTestCase(unittest.TestCase):
         Tests that the track_click route handles a non-existent email_id gracefully.
         """
         invalid_email_id = str(uuid.uuid4())
-        url_to_track = 'http://example.com'
+        url_to_track = '/some/other/path'
         response = self.client.get(f'/track/click/{invalid_email_id}?url={url_to_track}')
-        self.assertEqual(response.status_code, 302) # Should still redirect
+        self.assertEqual(response.status_code, 302)  # Should still redirect
         self.assertEqual(response.location, url_to_track)
         with self.app.app_context():
             self.assertEqual(Click.query.count(), 0) # No click should be recorded

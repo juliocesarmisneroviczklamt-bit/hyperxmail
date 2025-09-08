@@ -1,5 +1,18 @@
 import bleach
 from bleach.css_sanitizer import CSSSanitizer
+from urllib.parse import urlparse, urljoin
+from flask import request
+
+
+def is_safe_url(target):
+    """
+    Checks if a URL is safe for redirection. A URL is considered safe if it is
+    a relative URL or if its network location is the same as the application's.
+    """
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
+
 
 def sanitize_html(html_content):
     """
