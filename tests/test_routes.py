@@ -10,17 +10,21 @@ class RoutesTestCase(unittest.TestCase):
     def setUp(self):
         self.app, self.socketio = create_app(testing=True)
         self.client = self.app.test_client()
-        with self.app.app_context():
-            db.create_all()
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
+        # Define and clean up the templates file path for each test
+        self.templates_file_path = self.app.config['TEMPLATES_FILE_PATH']
+        if os.path.exists(self.templates_file_path):
+            os.remove(self.templates_file_path)
 
     def tearDown(self):
-        with self.app.app_context():
-            db.session.remove()
-            db.drop_all()
-        # Clean up templates.json if it was created
-        templates_file = os.path.join(self.app.root_path, '..', 'templates.json')
-        if os.path.exists(templates_file):
-            os.remove(templates_file)
+        db.session.remove()
+        db.drop_all()
+        # Clean up the templates file after each test
+        if os.path.exists(self.templates_file_path):
+            os.remove(self.templates_file_path)
+        self.app_context.pop()
 
     def test_index_route(self):
         response = self.client.get('/')
@@ -199,8 +203,7 @@ class RoutesTestCase(unittest.TestCase):
         """
         Tests that saving a template works even if the templates.json file is corrupted.
         """
-        templates_file = os.path.join(self.app.root_path, '..', 'templates.json')
-        with open(templates_file, 'w') as f:
+        with open(self.templates_file_path, 'w') as f:
             f.write('this is not valid json')
 
         template_data = {'name': 'Good Template', 'content': '<p>Good content</p>'}

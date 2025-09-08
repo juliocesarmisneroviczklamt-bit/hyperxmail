@@ -61,7 +61,8 @@ def init_routes(app):
             Response: Uma resposta JSON contendo uma lista de objetos de template.
                       Retorna uma lista vazia se o arquivo não existir.
         """
-        templates_file = os.path.join(app.root_path, '..', 'templates.json')
+        templates_filename = app.config.get('TEMPLATES_FILE_PATH', 'templates.json')
+        templates_file = os.path.join(app.root_path, '..', templates_filename)
         if not os.path.exists(templates_file):
             return jsonify([])
         with open(templates_file, 'r') as f:
@@ -83,14 +84,15 @@ def init_routes(app):
             return jsonify({'status': 'error', 'message': 'Dados inválidos.'}), 400
 
         name = bleach.clean(data['name']).strip()
-        content = bleach.clean(data['content'])
+        content = sanitize_html(data['content'])
 
         if not name or not content:
             return jsonify({'status': 'error', 'message': 'Nome e conteúdo são obrigatórios.'}), 400
 
         new_template = {'id': str(uuid.uuid4()), 'name': name, 'content': content}
 
-        templates_file = os.path.join(app.root_path, '..', 'templates.json')
+        templates_filename = app.config.get('TEMPLATES_FILE_PATH', 'templates.json')
+        templates_file = os.path.join(app.root_path, '..', templates_filename)
         templates = []
         if os.path.exists(templates_file):
             with open(templates_file, 'r') as f:

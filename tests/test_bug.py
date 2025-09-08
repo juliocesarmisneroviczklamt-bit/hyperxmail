@@ -4,6 +4,7 @@ from app import create_app, db
 from app.email_utils import send_bulk_emails
 import asyncio
 import json
+import os
 
 class SanitizationBugTest(unittest.TestCase):
     def setUp(self):
@@ -109,3 +110,55 @@ class SanitizationBugTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TemplateSavingBugTest(unittest.TestCase):
+    def setUp(self):
+        self.app, self.socketio = create_app(testing=True)
+        self.client = self.app.test_client()
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        # Define a path for a temporary templates file and ensure it's clean
+        self.templates_file_path = self.app.config['TEMPLATES_FILE_PATH']
+        if os.path.exists(self.templates_file_path):
+            os.remove(self.templates_file_path)
+
+    def tearDown(self):
+        # Clean up the temporary templates file
+        if os.path.exists(self.templates_file_path):
+            os.remove(self.templates_file_path)
+        self.app_context.pop()
+
+    def test_saving_template_strips_html_tags(self):
+        """
+        Confirms the bug: saving a template incorrectly strips out all HTML tags.
+        This test will initially pass (confirming the bug), then be modified to
+        fail, and finally pass again once the bug is fixed.
+        """
+        # Arrange: The HTML content to be saved
+        template_name = "My Test Template"
+        html_content = "<p>Hello, <strong>World!</strong></p>"
+
+        # This is what the buggy code produces
+        # expected_content_with_bug = "Hello, World!"
+
+        # This is what the code SHOULD produce
+        expected_content_fixed = "<p>Hello, <strong>World!</strong></p>"
+
+        # Act: Post the new template to the /templates endpoint
+        response = self.client.post('/templates',
+                                     data=json.dumps({'name': template_name, 'content': html_content}),
+                                     content_type='application/json')
+
+        # Assert: Check the response and the file content
+        self.assertEqual(response.status_code, 201)
+
+        # Verify the content of the saved file
+        with open(self.templates_file_path, 'r') as f:
+            templates = json.load(f)
+
+        self.assertEqual(len(templates), 1)
+        self.assertEqual(templates[0]['name'], template_name)
+
+        # This is the assertion that SHOULD pass after the fix.
+        self.assertEqual(templates[0]['content'], expected_content_fixed)
