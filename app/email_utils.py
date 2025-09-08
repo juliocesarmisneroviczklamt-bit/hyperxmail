@@ -117,30 +117,25 @@ async def send_email_task(email_data, base_url):
         msg_related = MIMEMultipart('related')
         msg.attach(msg_related)
 
-        # A mensagem agora chega pré-sanitizada.
-        # Apenas adicionamos o rastreamento de cliques e aberturas.
+        # Parse the HTML message once to allow for robust modifications.
         soup = BeautifulSoup(message, 'html.parser')
+
+        # Rewrite links for click tracking.
         for a in soup.find_all('a', href=True):
-            original_url = urllib.parse.quote(a['href'], safe='')
-            a['href'] = f"{base_url}track/click/{email_id}?url={original_url}"
+            # Only track absolute URLs.
+            if a['href'].startswith('http'):
+                original_url = urllib.parse.quote(a['href'], safe='')
+                a['href'] = f"{base_url}track/click/{email_id}?url={original_url}"
 
-        processed_message = str(soup)
-        html_body = processed_message
-
+        # Process attachments, embedding images that have a corresponding <img> tag.
         if attachments:
-            for i, att in enumerate(attachments):
-                sanitized_filename = sanitize_filename(att['name']) or "attachment"
-                cid = f'image-{uuid.uuid4()}'
+            img_tags = soup.find_all('img')
+            img_tag_index = 0
 
-                # Substitui os placeholders de imagem no corpo do HTML
-                if f'cid:image{i}' in html_body:
-                    html_body = html_body.replace(f'cid:image{i}', f'cid:{cid}')
-                else:
-                    html_body = html_body.replace(
-                        f'<img alt="{att["name"]}"', f'<img src="cid:{cid}" alt="{sanitized_filename}"'
-                    )
-                
+            for att in attachments:
+                sanitized_filename = sanitize_filename(att['name']) or "attachment"
                 decoded_data = base64.b64decode(att['data'])
+
                 if len(decoded_data) > Config.MAX_ATTACHMENT_SIZE:
                     return {'status': 'error', 'message': f"Anexo {sanitized_filename} excede o limite de 10MB."}
                 
@@ -148,26 +143,35 @@ async def send_email_task(email_data, base_url):
                 if mime_type not in ALLOWED_MIME_TYPES:
                     return {'status': 'error', 'message': f"Tipo de anexo não permitido: {sanitized_filename}"}
                 
-                _, suffix = os.path.splitext(sanitized_filename)
-                with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp_file:
-                    tmp_file.write(decoded_data)
-                    saved_files.append(tmp_file.name)
+                # If the attachment is an image and there's a corresponding <img> tag, embed it.
+                if mime_type.startswith('image/') and img_tag_index < len(img_tags):
+                    cid = f'image-{uuid.uuid4()}'
+                    img = MIMEImage(decoded_data)
+                    img.add_header('Content-ID', f'<{cid}>')
+                    img.add_header('Content-Disposition', 'inline', filename=sanitized_filename)
+                    msg_related.attach(img)
 
-                if mime_type.startswith('image/'):
-                    with open(tmp_file.name, 'rb') as img_file:
-                        img = MIMEImage(img_file.read())
-                        img.add_header('Content-ID', f'<{cid}>')
-                        img.add_header('Content-Disposition', 'inline', filename=sanitized_filename)
-                        msg_related.attach(img)
+                    # Update the src of the corresponding img tag.
+                    img_tags[img_tag_index]['src'] = f'cid:{cid}'
+                    img_tag_index += 1
                 else:
-                    with open(tmp_file.name, 'rb') as file:
-                        part = MIMEApplication(file.read(), Name=sanitized_filename)
-                        part['Content-Disposition'] = f'attachment; filename="{sanitized_filename}"'
-                        msg.attach(part)
+                    # Otherwise, add it as a regular attachment.
+                    part = MIMEApplication(decoded_data, Name=sanitized_filename)
+                    part['Content-Disposition'] = f'attachment; filename="{sanitized_filename}"'
+                    msg.attach(part)
 
-        # Adiciona o pixel de rastreamento e constrói o HTML final
-        tracking_pixel_html = f'<img src="{base_url}track/open/{email_id}" width="1" height="1" alt="">'
-        final_html = f'<html><body>{html_body}{tracking_pixel_html}</body></html>'
+        # Add the tracking pixel to the end of the body.
+        tracking_pixel_tag = BeautifulSoup(
+            f'<img src="{base_url}track/open/{email_id}" width="1" height="1" alt="">',
+            'html.parser'
+        )
+        if soup.body:
+            soup.body.append(tracking_pixel_tag)
+        else:
+            soup.append(tracking_pixel_tag)
+
+        # Attach the final, modified HTML to the email.
+        final_html = str(soup)
         html_part = MIMEText(final_html, 'html')
         msg_related.attach(html_part)
         
