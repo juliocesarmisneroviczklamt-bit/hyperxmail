@@ -6,34 +6,43 @@ Este módulo fornece funções assíncronas para:
 - Orquestrar o envio de e-mails em massa para campanhas.
 - Realizar a sanitização de nomes de arquivos e conteúdo HTML.
 """
+
 import asyncio
 import os
 import base64
 import logging
 import aiosmtplib
-import tempfile
 import uuid
 import urllib.parse
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 from email.mime.application import MIMEApplication
-import magic
 import bleach
+import mimetypes
+import imghdr
 import re
 from bs4 import BeautifulSoup
 from .config import Config
 from .utils import sanitize_html
 
+try:
+    import magic  # type: ignore
+except Exception:  # pragma: no cover - library optional
+    magic = None
+
 # Configuração do logging para este módulo.
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 # Expressão regular para uma validação básica de endereços de e-mail.
-email_regex = re.compile(r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$', re.IGNORECASE)
+email_regex = re.compile(r"^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$", re.IGNORECASE)
 
 # Lista de tipos MIME permitidos para anexos, para fins de segurança.
-ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
+ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "application/pdf"]
+
 
 def sanitize_filename(filename):
     """Sanitiza um nome de arquivo para remover caracteres potencialmente perigosos.
@@ -51,7 +60,32 @@ def sanitize_filename(filename):
     allowed_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-"
 
     # Filter the filename to keep only allowed characters
-    return ''.join(c for c in filename if c in allowed_chars)
+    return "".join(c for c in filename if c in allowed_chars)
+
+
+def _detect_mime_type(data: bytes, filename: str) -> str:
+    """Determine the MIME type of a file.
+
+    Tries to use ``python-magic`` if available. Falls back to ``mimetypes`` and
+    ``imghdr`` so tests can run even when ``libmagic`` is missing.
+    """
+
+    if magic is not None:
+        try:
+            return magic.from_buffer(data, mime=True)
+        except Exception:
+            pass
+
+    mime, _ = mimetypes.guess_type(filename)
+    if mime:
+        return mime
+
+    img_type = imghdr.what(None, h=data)
+    if img_type:
+        return f"image/{img_type}"
+
+    return "application/octet-stream"
+
 
 async def check_smtp_credentials():
     """Verifica de forma assíncrona a validade das credenciais SMTP.
@@ -69,9 +103,7 @@ async def check_smtp_credentials():
 
     try:
         client = aiosmtplib.SMTP(
-            hostname=Config.SMTP_SERVER,
-            port=Config.SMTP_PORT,
-            use_tls=use_tls_directly
+            hostname=Config.SMTP_SERVER, port=Config.SMTP_PORT, use_tls=use_tls_directly
         )
         await client.connect()
 
@@ -89,6 +121,7 @@ async def check_smtp_credentials():
     except Exception as e:
         logger.error(f"Erro ao verificar credenciais SMTP: {e}")
         return False
+
 
 async def send_email_task(email_data, base_url):
     """Envia um único e-mail de forma assíncrona.
@@ -121,72 +154,89 @@ async def send_email_task(email_data, base_url):
     saved_files = []
 
     try:
-        to = [str(email).strip() for email in to if email_regex.match(str(email).strip())]
+        to = [
+            str(email).strip() for email in to if email_regex.match(str(email).strip())
+        ]
         if not to:
-            return {'status': 'error', 'message': 'Nenhum destinatário válido fornecido.'}
+            return {
+                "status": "error",
+                "message": "Nenhum destinatário válido fornecido.",
+            }
 
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = bleach.clean(subject)
-        msg['From'] = Config.EMAIL_SENDER
-        msg['To'] = ', '.join([bleach.clean(email) for email in to])
-        if cc: msg['Cc'] = cc
-        if bcc: msg['Bcc'] = bcc
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = bleach.clean(subject)
+        msg["From"] = Config.EMAIL_SENDER
+        msg["To"] = ", ".join([bleach.clean(email) for email in to])
+        if cc:
+            msg["Cc"] = cc
+        if bcc:
+            msg["Bcc"] = bcc
 
-        msg_related = MIMEMultipart('related')
+        msg_related = MIMEMultipart("related")
         msg.attach(msg_related)
 
         # Parse the HTML message once to allow for robust modifications.
-        soup = BeautifulSoup(message, 'html.parser')
+        soup = BeautifulSoup(message, "html.parser")
 
         # Sanitize 'title' attributes to prevent XSS from HTML content within them.
         for tag in soup.find_all(title=True):
             # We clean the title attribute by stripping all tags from its content.
-            tag['title'] = bleach.clean(tag['title'], tags=[], strip=True)
+            tag["title"] = bleach.clean(tag["title"], tags=[], strip=True)
 
         # Rewrite links for click tracking.
-        for a in soup.find_all('a', href=True):
+        for a in soup.find_all("a", href=True):
             # Only track absolute URLs.
-            if a['href'].startswith('http'):
-                original_url = urllib.parse.quote(a['href'], safe='')
-                a['href'] = f"{base_url}track/click/{email_id}?url={original_url}"
+            if a["href"].startswith("http"):
+                original_url = urllib.parse.quote(a["href"], safe="")
+                a["href"] = f"{base_url}track/click/{email_id}?url={original_url}"
 
         # Process attachments, embedding images that have a corresponding <img> tag.
         if attachments:
-            img_tags = soup.find_all('img')
+            img_tags = soup.find_all("img")
             img_tag_index = 0
 
             for att in attachments:
-                sanitized_filename = sanitize_filename(att['name']) or "attachment"
-                decoded_data = base64.b64decode(att['data'])
+                sanitized_filename = sanitize_filename(att["name"]) or "attachment"
+                decoded_data = base64.b64decode(att["data"])
 
                 if len(decoded_data) > Config.MAX_ATTACHMENT_SIZE:
-                    return {'status': 'error', 'message': f"Anexo {sanitized_filename} excede o limite de 10MB."}
-                
-                mime_type = magic.from_buffer(decoded_data, mime=True)
+                    return {
+                        "status": "error",
+                        "message": f"Anexo {sanitized_filename} excede o limite de 10MB.",
+                    }
+
+                mime_type = _detect_mime_type(decoded_data, sanitized_filename)
                 if mime_type not in ALLOWED_MIME_TYPES:
-                    return {'status': 'error', 'message': f"Tipo de anexo não permitido: {sanitized_filename}"}
-                
+                    return {
+                        "status": "error",
+                        "message": f"Tipo de anexo não permitido: {sanitized_filename}",
+                    }
+
                 # If the attachment is an image and there's a corresponding <img> tag, embed it.
-                if mime_type.startswith('image/') and img_tag_index < len(img_tags):
-                    cid = f'image-{uuid.uuid4()}'
+                if mime_type.startswith("image/") and img_tag_index < len(img_tags):
+                    cid = f"image-{uuid.uuid4()}"
                     img = MIMEImage(decoded_data)
-                    img.add_header('Content-ID', f'<{cid}>')
-                    img.add_header('Content-Disposition', 'inline', filename=sanitized_filename)
+                    img.add_header("Content-ID", f"<{cid}>")
+                    img.add_header(
+                        "Content-Disposition", "inline", filename=sanitized_filename
+                    )
                     msg_related.attach(img)
 
                     # Update the src of the corresponding img tag.
-                    img_tags[img_tag_index]['src'] = f'cid:{cid}'
+                    img_tags[img_tag_index]["src"] = f"cid:{cid}"
                     img_tag_index += 1
                 else:
                     # Otherwise, add it as a regular attachment.
                     part = MIMEApplication(decoded_data, Name=sanitized_filename)
-                    part['Content-Disposition'] = f'attachment; filename="{sanitized_filename}"'
+                    part["Content-Disposition"] = (
+                        f'attachment; filename="{sanitized_filename}"'
+                    )
                     msg.attach(part)
 
         # Add the tracking pixel to the end of the body.
         tracking_pixel_tag = BeautifulSoup(
             f'<img src="{base_url}track/open/{email_id}" width="1" height="1" alt="">',
-            'html.parser'
+            "html.parser",
         )
         if soup.body:
             soup.body.append(tracking_pixel_tag)
@@ -196,16 +246,14 @@ async def send_email_task(email_data, base_url):
         # Attach the final, modified HTML to the email.
         final_html = str(soup)
         sanitized_html = sanitize_html(final_html)
-        html_part = MIMEText(sanitized_html, 'html')
+        html_part = MIMEText(sanitized_html, "html")
         msg_related.attach(html_part)
-        
+
         # Determina o método de conexão TLS com base na porta.
         use_tls_directly = Config.SMTP_PORT == 465
 
         async with aiosmtplib.SMTP(
-            hostname=Config.SMTP_SERVER,
-            port=Config.SMTP_PORT,
-            use_tls=use_tls_directly
+            hostname=Config.SMTP_SERVER, port=Config.SMTP_PORT, use_tls=use_tls_directly
         ) as client:
             # Apenas chame starttls() se a conexão não for TLS desde o início.
             if not use_tls_directly:
@@ -216,14 +264,14 @@ async def send_email_task(email_data, base_url):
             logger.info(f"E-mail enviado para {', '.join(to)}")
 
         await asyncio.sleep(Config.SECONDS_PER_EMAIL)
-        return {'status': 'success', 'message': 'E-mail enviado com sucesso!'}
+        return {"status": "success", "message": "E-mail enviado com sucesso!"}
 
     except aiosmtplib.SMTPAuthenticationError as e:
         logger.error(f"Erro de autenticação SMTP: {e}")
-        return {'status': 'error', 'message': f"Erro de autenticação: {str(e)}"}
+        return {"status": "error", "message": f"Erro de autenticação: {str(e)}"}
     except Exception as e:
         logger.error(f"Erro ao enviar e-mail para {to}: {e}", exc_info=True)
-        return {'status': 'error', 'message': str(e)}
+        return {"status": "error", "message": str(e)}
     finally:
         for filepath in saved_files:
             try:
@@ -231,7 +279,17 @@ async def send_email_task(email_data, base_url):
             except Exception as e:
                 logger.error(f"Erro ao remover arquivo temporário {filepath}: {e}")
 
-async def send_bulk_emails(subject, cc, bcc, message, attachments, base_url, csv_content=None, manual_emails=None):
+
+async def send_bulk_emails(
+    subject,
+    cc,
+    bcc,
+    message,
+    attachments,
+    base_url,
+    csv_content=None,
+    manual_emails=None,
+):
     """Orquestra o envio de e-mails em massa para uma campanha.
 
     Esta função gerencia todo o fluxo de uma campanha de e-mail:
@@ -269,41 +327,85 @@ async def send_bulk_emails(subject, cc, bcc, message, attachments, base_url, csv
     try:
         all_emails = set()
         if csv_content:
-            all_emails.update(line.strip() for line in csv_content.splitlines() if email_regex.match(line.strip()))
+            all_emails.update(
+                line.strip()
+                for line in csv_content.splitlines()
+                if email_regex.match(line.strip())
+            )
         if manual_emails:
-            all_emails.update(email.strip() for email in manual_emails if email_regex.match(email.strip()))
+            all_emails.update(
+                email.strip()
+                for email in manual_emails
+                if email_regex.match(email.strip())
+            )
 
         if not all_emails:
-            return {'status': 'error', 'message': "Nenhum e-mail válido encontrado."}
+            return {"status": "error", "message": "Nenhum e-mail válido encontrado."}
 
         emails_to_send = list(all_emails)
         total_to_send = len(emails_to_send)
-        logger.info(f"Iniciando envio de {total_to_send} e-mails para a campanha ID {new_campaign.id}...")
+        logger.info(
+            f"Iniciando envio de {total_to_send} e-mails para a campanha ID {new_campaign.id}..."
+        )
 
         sent_count = 0
         for email_address in emails_to_send:
             email_id = str(uuid.uuid4())
-            new_email = Email(id=email_id, campaign_id=new_campaign.id, recipient=email_address)
+            new_email = Email(
+                id=email_id, campaign_id=new_campaign.id, recipient=email_address
+            )
             db.session.add(new_email)
             db.session.commit()
 
-            email_data = ([email_address], subject, cc, bcc, message, attachments, email_id)
+            email_data = (
+                [email_address],
+                subject,
+                cc,
+                bcc,
+                message,
+                attachments,
+                email_id,
+            )
             result = await send_email_task(email_data, base_url)
 
-            if isinstance(result, dict) and result['status'] == 'success':
+            if isinstance(result, dict) and result["status"] == "success":
                 sent_count += 1
-                progress_data = {'sent': sent_count, 'total': total_to_send, 'email': email_address}
-                socketio.emit('progress', progress_data)
+                progress_data = {
+                    "sent": sent_count,
+                    "total": total_to_send,
+                    "email": email_address,
+                }
+                socketio.emit("progress", progress_data)
                 logger.info(f"Progresso emitido: {progress_data}")
             else:
-                error_message = result.get('message', 'Erro desconhecido')
-                logger.error(f"Falha ao enviar e-mail para {email_address}: {error_message}")
-                socketio.emit('task_error', {'message': f"Falha ao enviar para {email_address}: {error_message}"})
-                return {'status': 'error', 'message': f"Falha no envio para {email_address}"}
+                error_message = result.get("message", "Erro desconhecido")
+                logger.error(
+                    f"Falha ao enviar e-mail para {email_address}: {error_message}"
+                )
+                socketio.emit(
+                    "task_error",
+                    {
+                        "message": f"Falha ao enviar para {email_address}: {error_message}"
+                    },
+                )
+                return {
+                    "status": "error",
+                    "message": f"Falha no envio para {email_address}",
+                }
 
-        logger.info(f"Campanha ID {new_campaign.id} concluída. Enviados {sent_count}/{total_to_send} e-mails.")
-        return {'status': 'success', 'message': f"Enviados {sent_count} de {total_to_send} e-mails."}
+        logger.info(
+            f"Campanha ID {new_campaign.id} concluída. Enviados {sent_count}/{total_to_send} e-mails."
+        )
+        return {
+            "status": "success",
+            "message": f"Enviados {sent_count} de {total_to_send} e-mails.",
+        }
     except Exception as e:
-        logger.error(f"Erro crítico no envio em massa (Campanha ID {new_campaign.id}): {e}", exc_info=True)
-        socketio.emit('task_error', {'message': 'Ocorreu um erro interno grave durante o envio.'})
-        return {'status': 'error', 'message': str(e)}
+        logger.error(
+            f"Erro crítico no envio em massa (Campanha ID {new_campaign.id}): {e}",
+            exc_info=True,
+        )
+        socketio.emit(
+            "task_error", {"message": "Ocorreu um erro interno grave durante o envio."}
+        )
+        return {"status": "error", "message": str(e)}
