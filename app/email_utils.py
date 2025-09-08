@@ -62,6 +62,7 @@ def sanitize_filename(filename):
     # Filter the filename to keep only allowed characters
     return "".join(c for c in filename if c in allowed_chars)
 
+codex/analise-o-repositorio-btgqea
 
 def _detect_mime_type(data: bytes, filename: str) -> str:
     """Determine the MIME type of a file.
@@ -86,6 +87,7 @@ def _detect_mime_type(data: bytes, filename: str) -> str:
 
     return "application/octet-stream"
 
+ main
 
 async def check_smtp_credentials():
     """Verifica de forma assíncrona a validade das credenciais SMTP.
@@ -205,7 +207,11 @@ async def send_email_task(email_data, base_url):
                         "message": f"Anexo {sanitized_filename} excede o limite de 10MB.",
                     }
 
+ codex/analise-o-repositorio-btgqea
                 mime_type = _detect_mime_type(decoded_data, sanitized_filename)
+
+                mime_type = magic.from_buffer(decoded_data, mime=True)
+main
                 if mime_type not in ALLOWED_MIME_TYPES:
                     return {
                         "status": "error",
