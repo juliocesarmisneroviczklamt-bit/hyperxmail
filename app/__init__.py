@@ -52,6 +52,7 @@ def create_app(testing=False):
         app.config['TESTING'] = True
         app.config['WTF_CSRF_ENABLED'] = False  # Desabilita CSRF para testes
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'  # Usa banco de dados em memória
+        app.config['TEMPLATES_FILE_PATH'] = 'test_templates.json'
 
     # Define a chave secreta para segurança do CSRF e sessões
     app.secret_key = Config.SECRET_KEY
