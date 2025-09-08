@@ -36,9 +36,11 @@ class Config:
 
     # --- Configurações de E-mail ---
     # Endereço de e-mail usado como remetente.
-    EMAIL_SENDER = config('EMAIL_SENDER')
+    # Fornece um valor padrão para facilitar a execução de testes sem
+    # dependências externas ou variáveis de ambiente.
+    EMAIL_SENDER = config('EMAIL_SENDER', default='test@example.com')
     # Senha do e-mail do remetente. Para serviços como Gmail, use uma "Senha de App".
-    EMAIL_PASSWORD = config('EMAIL_PASSWORD')
+    EMAIL_PASSWORD = config('EMAIL_PASSWORD', default='test-password')
     # Endereço do servidor SMTP.
     SMTP_SERVER = config('SMTP_SERVER', default='smtp.office365.com')
     # Porta do servidor SMTP (587 é comum para STARTTLS).
