@@ -58,14 +58,27 @@ async def check_smtp_credentials():
 
     Tenta conectar e autenticar no servidor SMTP configurado na `Config`.
     Isso é útil para validar as configurações antes de iniciar um envio em massa.
+    A lógica adapta-se automaticamente para usar SMTPS (porta 465) ou STARTTLS.
 
     Returns:
         bool: True se a autenticação for bem-sucedida, False caso contrário.
     """
+    # Determina se a conexão deve usar TLS desde o início (SMTPS/SSL) ou
+    # ser atualizada para TLS (STARTTLS). A porta 465 é o padrão para SMTPS.
+    use_tls_directly = Config.SMTP_PORT == 465
+
     try:
-        client = aiosmtplib.SMTP(hostname=Config.SMTP_SERVER, port=Config.SMTP_PORT, use_tls=False)
+        client = aiosmtplib.SMTP(
+            hostname=Config.SMTP_SERVER,
+            port=Config.SMTP_PORT,
+            use_tls=use_tls_directly
+        )
         await client.connect()
-        await client.starttls()
+
+        # Se não estivermos em uma conexão TLS direta, devemos iniciar o STARTTLS.
+        if not use_tls_directly:
+            await client.starttls()
+
         await client.login(Config.EMAIL_SENDER, Config.EMAIL_PASSWORD)
         await client.quit()
         logger.info("Credenciais SMTP verificadas com sucesso.")
@@ -186,8 +199,18 @@ async def send_email_task(email_data, base_url):
         html_part = MIMEText(sanitized_html, 'html')
         msg_related.attach(html_part)
         
-        async with aiosmtplib.SMTP(hostname=Config.SMTP_SERVER, port=Config.SMTP_PORT, use_tls=False) as client:
-            await client.starttls()
+        # Determina o método de conexão TLS com base na porta.
+        use_tls_directly = Config.SMTP_PORT == 465
+
+        async with aiosmtplib.SMTP(
+            hostname=Config.SMTP_SERVER,
+            port=Config.SMTP_PORT,
+            use_tls=use_tls_directly
+        ) as client:
+            # Apenas chame starttls() se a conexão não for TLS desde o início.
+            if not use_tls_directly:
+                await client.starttls()
+
             await client.login(Config.EMAIL_SENDER, Config.EMAIL_PASSWORD)
             await client.send_message(msg)
             logger.info(f"E-mail enviado para {', '.join(to)}")
