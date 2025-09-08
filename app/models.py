@@ -9,8 +9,10 @@ os e-mails individuais enviados, e os eventos de rastreamento (aberturas e cliqu
 - Open: Registra um evento de abertura de um e-mail.
 - Click: Registra um evento de clique em um link dentro de um e-mail.
 """
+
 from . import db
 from datetime import datetime
+
 
 class Campaign(db.Model):
     """Representa uma campanha de e-mail.
@@ -26,11 +28,13 @@ class Campaign(db.Model):
         emails (relationship): Relacionamento com os e-mails individuais
             desta campanha.
     """
+
     id = db.Column(db.Integer, primary_key=True)
     subject = db.Column(db.String(255), nullable=False)
     message = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    emails = db.relationship('Email', backref='campaign', lazy=True)
+    emails = db.relationship("Email", backref="campaign", lazy=True)
+
 
 class Email(db.Model):
     """Representa um e-mail individual enviado em uma campanha.
@@ -46,12 +50,14 @@ class Email(db.Model):
         opens (relationship): Relacionamento com os eventos de abertura deste e-mail.
         clicks (relationship): Relacionamento com os eventos de clique deste e-mail.
     """
+
     id = db.Column(db.String(36), primary_key=True)  # Usando UUIDs como IDs
-    campaign_id = db.Column(db.Integer, db.ForeignKey('campaign.id'), nullable=False)
+    campaign_id = db.Column(db.Integer, db.ForeignKey("campaign.id"), nullable=False)
     recipient = db.Column(db.String(255), nullable=False)
     sent_at = db.Column(db.DateTime, default=datetime.utcnow)
-    opens = db.relationship('Open', backref='email', lazy=True)
-    clicks = db.relationship('Click', backref='email', lazy=True)
+    opens = db.relationship("Open", backref="email", lazy=True)
+    clicks = db.relationship("Click", backref="email", lazy=True)
+
 
 class Open(db.Model):
     """Registra um evento de abertura de e-mail.
@@ -64,9 +70,11 @@ class Open(db.Model):
         email_id (str): Chave estrangeira para o e-mail que foi aberto.
         opened_at (datetime): O timestamp do evento de abertura.
     """
+
     id = db.Column(db.Integer, primary_key=True)
-    email_id = db.Column(db.String(36), db.ForeignKey('email.id'), nullable=False)
+    email_id = db.Column(db.String(36), db.ForeignKey("email.id"), nullable=False)
     opened_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 class Click(db.Model):
     """Registra um evento de clique em um link de e-mail.
@@ -80,7 +88,8 @@ class Click(db.Model):
         url (str): A URL original para a qual o usuário foi redirecionado.
         clicked_at (datetime): O timestamp do evento de clique.
     """
+
     id = db.Column(db.Integer, primary_key=True)
-    email_id = db.Column(db.String(36), db.ForeignKey('email.id'), nullable=False)
+    email_id = db.Column(db.String(36), db.ForeignKey("email.id"), nullable=False)
     url = db.Column(db.String(2048), nullable=False)
     clicked_at = db.Column(db.DateTime, default=datetime.utcnow)

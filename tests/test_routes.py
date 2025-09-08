@@ -6,6 +6,7 @@ from app.models import db, Campaign, Email, Open, Click
 import os
 import uuid
 
+
 class RoutesTestCase(unittest.TestCase):
     def setUp(self):
         self.app, self.socketio = create_app(testing=True)
@@ -14,7 +15,7 @@ class RoutesTestCase(unittest.TestCase):
         self.app_context.push()
         db.create_all()
         # Define and clean up the templates file path for each test
-        self.templates_file_path = self.app.config['TEMPLATES_FILE_PATH']
+        self.templates_file_path = self.app.config["TEMPLATES_FILE_PATH"]
         if os.path.exists(self.templates_file_path):
             os.remove(self.templates_file_path)
 
@@ -27,81 +28,93 @@ class RoutesTestCase(unittest.TestCase):
         self.app_context.pop()
 
     def test_index_route(self):
-        response = self.client.get('/')
+        response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertIn('hyperxmail', response.data.decode('utf-8'))
+        self.assertIn("hyperxmail", response.data.decode("utf-8"))
 
     def test_reports_route(self):
-        response = self.client.get('/reports')
+        response = self.client.get("/reports")
         self.assertEqual(response.status_code, 200)
-        self.assertIn('Relatórios de Campanhas', response.data.decode('utf-8'))
+        self.assertIn("Relatórios de Campanhas", response.data.decode("utf-8"))
 
     def test_track_click_open_redirect(self):
         # Testa a vulnerabilidade de open redirect
-        response = self.client.get('/track/click/some_id?url=http://example.com')
+        response = self.client.get("/track/click/some_id?url=http://example.com")
         self.assertEqual(response.status_code, 400)
 
     def test_track_click_safe_redirect(self):
         # Testa um redirecionamento seguro
-        response = self.client.get('/track/click/some_id?url=/safe/path')
+        response = self.client.get("/track/click/some_id?url=/safe/path")
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.location, '/safe/path')
+        self.assertEqual(response.location, "/safe/path")
 
     def test_get_templates_no_file(self):
-        response = self.client.get('/templates')
+        response = self.client.get("/templates")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(json.loads(response.data), [])
 
     def test_save_and_get_template(self):
         # Save a new template
-        template_data = {'name': 'Test Template', 'content': '<p>Hello</p>'}
-        response = self.client.post('/templates',
-                                    data=json.dumps(template_data),
-                                    content_type='application/json')
+        template_data = {"name": "Test Template", "content": "<p>Hello</p>"}
+        response = self.client.post(
+            "/templates",
+            data=json.dumps(template_data),
+            content_type="application/json",
+        )
         self.assertEqual(response.status_code, 201)
 
         # Get all templates
-        response = self.client.get('/templates')
+        response = self.client.get("/templates")
         self.assertEqual(response.status_code, 200)
         templates = json.loads(response.data)
         self.assertEqual(len(templates), 1)
-        self.assertEqual(templates[0]['name'], 'Test Template')
+        self.assertEqual(templates[0]["name"], "Test Template")
 
     def test_save_template_invalid_data(self):
-        response = self.client.post('/templates',
-                                    data=json.dumps({'name': 'Test'}),
-                                    content_type='application/json')
+        response = self.client.post(
+            "/templates",
+            data=json.dumps({"name": "Test"}),
+            content_type="application/json",
+        )
         self.assertEqual(response.status_code, 400)
 
     def test_track_open(self):
         with self.app.app_context():
-            campaign = Campaign(subject='Test Campaign', message='Test Message')
+            campaign = Campaign(subject="Test Campaign", message="Test Message")
             db.session.add(campaign)
             db.session.commit()
-            email = Email(id=str(uuid.uuid4()), campaign_id=campaign.id, recipient='test@example.com')
+            email = Email(
+                id=str(uuid.uuid4()),
+                campaign_id=campaign.id,
+                recipient="test@example.com",
+            )
             db.session.add(email)
             db.session.commit()
             email_id = email.id
 
-        response = self.client.get(f'/track/open/{email_id}')
+        response = self.client.get(f"/track/open/{email_id}")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers['Content-Type'], 'image/gif')
+        self.assertEqual(response.headers["Content-Type"], "image/gif")
 
         with self.app.app_context():
             self.assertEqual(Open.query.count(), 1)
 
     def test_track_click(self):
         with self.app.app_context():
-            campaign = Campaign(subject='Test Campaign', message='Test Message')
+            campaign = Campaign(subject="Test Campaign", message="Test Message")
             db.session.add(campaign)
             db.session.commit()
-            email = Email(id=str(uuid.uuid4()), campaign_id=campaign.id, recipient='test@example.com')
+            email = Email(
+                id=str(uuid.uuid4()),
+                campaign_id=campaign.id,
+                recipient="test@example.com",
+            )
             db.session.add(email)
             db.session.commit()
             email_id = email.id
 
-        url_to_track = '/some/path'
-        response = self.client.get(f'/track/click/{email_id}?url={url_to_track}')
+        url_to_track = "/some/path"
+        response = self.client.get(f"/track/click/{email_id}?url={url_to_track}")
         self.assertEqual(response.status_code, 302)  # Redirect
         self.assertEqual(response.location, url_to_track)
 
@@ -111,149 +124,161 @@ class RoutesTestCase(unittest.TestCase):
 
     def test_api_campaigns(self):
         with self.app.app_context():
-            campaign1 = Campaign(subject='Campaign 1', message='Message 1')
-            campaign2 = Campaign(subject='Campaign 2', message='Message 2')
+            campaign1 = Campaign(subject="Campaign 1", message="Message 1")
+            campaign2 = Campaign(subject="Campaign 2", message="Message 2")
             db.session.add_all([campaign1, campaign2])
             db.session.commit()
 
-        response = self.client.get('/api/campaigns')
+        response = self.client.get("/api/campaigns")
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertEqual(len(data), 2)
-        self.assertEqual(data[0]['subject'], 'Campaign 2') # Test order_by desc
+        self.assertEqual(data[0]["subject"], "Campaign 2")  # Test order_by desc
 
     def test_api_report(self):
         with self.app.app_context():
-            campaign = Campaign(subject='Test Campaign', message='Test Message')
+            campaign = Campaign(subject="Test Campaign", message="Test Message")
             db.session.add(campaign)
             db.session.commit()
-            email = Email(id=str(uuid.uuid4()), campaign_id=campaign.id, recipient='test@example.com')
+            email = Email(
+                id=str(uuid.uuid4()),
+                campaign_id=campaign.id,
+                recipient="test@example.com",
+            )
             db.session.add(email)
             db.session.commit()
             open_event = Open(email_id=email.id)
-            click_event = Click(email_id=email.id, url='http://example.com')
+            click_event = Click(email_id=email.id, url="http://example.com")
             db.session.add_all([open_event, click_event])
             db.session.commit()
             campaign_id = campaign.id
 
-        response = self.client.get(f'/api/reports/{campaign_id}')
+        response = self.client.get(f"/api/reports/{campaign_id}")
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
-        self.assertEqual(data['total_sent'], 1)
-        self.assertEqual(data['unique_opens'], 1)
-        self.assertEqual(data['unique_clicks'], 1)
-        self.assertEqual(data['open_rate'], '100.00%')
-        self.assertEqual(data['click_rate'], '100.00%')
+        self.assertEqual(data["total_sent"], 1)
+        self.assertEqual(data["unique_opens"], 1)
+        self.assertEqual(data["unique_clicks"], 1)
+        self.assertEqual(data["open_rate"], "100.00%")
+        self.assertEqual(data["click_rate"], "100.00%")
 
     def test_api_report_no_sends(self):
         with self.app.app_context():
-            campaign = Campaign(subject='Test Campaign', message='Test Message')
+            campaign = Campaign(subject="Test Campaign", message="Test Message")
             db.session.add(campaign)
             db.session.commit()
             campaign_id = campaign.id
 
-        response = self.client.get(f'/api/reports/{campaign_id}')
+        response = self.client.get(f"/api/reports/{campaign_id}")
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
-        self.assertEqual(data['total_sent'], 0)
+        self.assertEqual(data["total_sent"], 0)
 
-    @patch('app.routes.check_smtp_credentials', new_callable=AsyncMock)
-    @patch('app.routes.send_bulk_emails', new_callable=AsyncMock)
+    @patch("app.routes.check_smtp_credentials", new_callable=AsyncMock)
+    @patch("app.routes.send_bulk_emails", new_callable=AsyncMock)
     def test_send_email_success(self, mock_send_bulk_emails, mock_check_smtp):
         mock_check_smtp.return_value = True
-        mock_send_bulk_emails.return_value = {'status': 'success'}
+        mock_send_bulk_emails.return_value = {"status": "success"}
 
         email_data = {
-            'subject': 'Test Subject',
-            'message': 'Test Message',
-            'manualEmails': ['test@example.com']
+            "subject": "Test Subject",
+            "message": "Test Message",
+            "manualEmails": ["test@example.com"],
         }
 
-        response = self.client.post('/send_email',
-                                         data=json.dumps(email_data),
-                                         content_type='application/json')
+        response = self.client.post(
+            "/send_email", data=json.dumps(email_data), content_type="application/json"
+        )
 
         self.assertEqual(response.status_code, 200)
         mock_send_bulk_emails.assert_called_once()
 
-    @patch('app.routes.check_smtp_credentials', new_callable=AsyncMock)
+    @patch("app.routes.check_smtp_credentials", new_callable=AsyncMock)
     def test_send_email_smtp_failure(self, mock_check_smtp):
         mock_check_smtp.return_value = False
 
         email_data = {
-            'subject': 'Test Subject',
-            'message': 'Test Message',
-            'manualEmails': ['test@example.com']
+            "subject": "Test Subject",
+            "message": "Test Message",
+            "manualEmails": ["test@example.com"],
         }
 
-        response = self.client.post('/send_email',
-                                         data=json.dumps(email_data),
-                                         content_type='application/json')
+        response = self.client.post(
+            "/send_email", data=json.dumps(email_data), content_type="application/json"
+        )
 
         self.assertEqual(response.status_code, 500)
-        self.assertIn(b'Falha na autentica', response.data)
+        self.assertIn(b"Falha na autentica", response.data)
 
-    @patch('app.routes.check_smtp_credentials', new_callable=AsyncMock)
+    @patch("app.routes.check_smtp_credentials", new_callable=AsyncMock)
     def test_send_email_invalid_request(self, mock_check_smtp):
         mock_check_smtp.return_value = True
-        response = self.client.post('/send_email', data="not json", content_type='text/plain')
+        response = self.client.post(
+            "/send_email", data="not json", content_type="text/plain"
+        )
         self.assertEqual(response.status_code, 400)
 
-    @patch('app.routes.check_smtp_credentials', new_callable=AsyncMock)
+    @patch("app.routes.check_smtp_credentials", new_callable=AsyncMock)
     def test_send_email_missing_fields(self, mock_check_smtp):
         mock_check_smtp.return_value = True
 
-        response = self.client.post('/send_email',
-                                         data=json.dumps({'subject': 'Test'}),
-                                         content_type='application/json')
+        response = self.client.post(
+            "/send_email",
+            data=json.dumps({"subject": "Test"}),
+            content_type="application/json",
+        )
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn(b'Todos os campos s', response.data)
+        self.assertIn(b"Todos os campos s", response.data)
 
     def test_save_template_with_corrupted_json(self):
         """
         Tests that saving a template works even if the templates.json file is corrupted.
         """
-        with open(self.templates_file_path, 'w') as f:
-            f.write('this is not valid json')
+        with open(self.templates_file_path, "w") as f:
+            f.write("this is not valid json")
 
-        template_data = {'name': 'Good Template', 'content': '<p>Good content</p>'}
-        response = self.client.post('/templates',
-                                    data=json.dumps(template_data),
-                                    content_type='application/json')
+        template_data = {"name": "Good Template", "content": "<p>Good content</p>"}
+        response = self.client.post(
+            "/templates",
+            data=json.dumps(template_data),
+            content_type="application/json",
+        )
         self.assertEqual(response.status_code, 201)
 
         # Verify the file was overwritten with good data
-        response = self.client.get('/templates')
+        response = self.client.get("/templates")
         self.assertEqual(response.status_code, 200)
         templates = json.loads(response.data)
         self.assertEqual(len(templates), 1)
-        self.assertEqual(templates[0]['name'], 'Good Template')
+        self.assertEqual(templates[0]["name"], "Good Template")
 
     def test_track_open_invalid_email_id(self):
         """
         Tests that the track_open route handles a non-existent email_id gracefully.
         """
         invalid_email_id = str(uuid.uuid4())
-        response = self.client.get(f'/track/open/{invalid_email_id}')
-        self.assertEqual(response.status_code, 200) # Should still return the pixel
+        response = self.client.get(f"/track/open/{invalid_email_id}")
+        self.assertEqual(response.status_code, 200)  # Should still return the pixel
         with self.app.app_context():
-            self.assertEqual(Open.query.count(), 0) # No open should be recorded
+            self.assertEqual(Open.query.count(), 0)  # No open should be recorded
 
     def test_track_click_invalid_email_id(self):
         """
         Tests that the track_click route handles a non-existent email_id gracefully.
         """
         invalid_email_id = str(uuid.uuid4())
-        url_to_track = '/some/other/path'
-        response = self.client.get(f'/track/click/{invalid_email_id}?url={url_to_track}')
+        url_to_track = "/some/other/path"
+        response = self.client.get(
+            f"/track/click/{invalid_email_id}?url={url_to_track}"
+        )
         self.assertEqual(response.status_code, 302)  # Should still redirect
         self.assertEqual(response.location, url_to_track)
         with self.app.app_context():
-            self.assertEqual(Click.query.count(), 0) # No click should be recorded
+            self.assertEqual(Click.query.count(), 0)  # No click should be recorded
 
-    @patch('app.routes.check_smtp_credentials', new_callable=AsyncMock)
-    @patch('app.routes.send_bulk_emails', new_callable=AsyncMock)
+    @patch("app.routes.check_smtp_credentials", new_callable=AsyncMock)
+    @patch("app.routes.send_bulk_emails", new_callable=AsyncMock)
     def test_send_email_internal_error(self, mock_send_bulk_emails, mock_check_smtp):
         """
         Tests that a generic exception in send_bulk_emails returns a 500 error.
@@ -262,16 +287,17 @@ class RoutesTestCase(unittest.TestCase):
         mock_send_bulk_emails.side_effect = Exception("A critical error occurred")
 
         email_data = {
-            'subject': 'Test Subject',
-            'message': 'Test Message',
-            'manualEmails': ['test@example.com']
+            "subject": "Test Subject",
+            "message": "Test Message",
+            "manualEmails": ["test@example.com"],
         }
-        response = self.client.post('/send_email',
-                                    data=json.dumps(email_data),
-                                    content_type='application/json')
+        response = self.client.post(
+            "/send_email", data=json.dumps(email_data), content_type="application/json"
+        )
 
         self.assertEqual(response.status_code, 500)
-        self.assertIn(b'Erro interno no servidor', response.data)
+        self.assertIn(b"Erro interno no servidor", response.data)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

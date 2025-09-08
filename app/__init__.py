@@ -8,6 +8,7 @@ A utilização do padrão de factory permite criar múltiplas instâncias da
 aplicação com diferentes configurações, o que é especialmente útil para
 testes.
 """
+
 from flask import Flask
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
@@ -25,6 +26,7 @@ from .routes import init_routes
 socketio = SocketIO()
 db = SQLAlchemy()
 migrate = Migrate()
+
 
 def create_app(testing=False):
     """Cria e configura uma instância da aplicação Flask.
@@ -49,10 +51,12 @@ def create_app(testing=False):
 
     if testing:
         # Sobrescreve configurações para o modo de teste
-        app.config['TESTING'] = True
-        app.config['WTF_CSRF_ENABLED'] = False  # Desabilita CSRF para testes
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'  # Usa banco de dados em memória
-        app.config['TEMPLATES_FILE_PATH'] = 'test_templates.json'
+        app.config["TESTING"] = True
+        app.config["WTF_CSRF_ENABLED"] = False  # Desabilita CSRF para testes
+        app.config["SQLALCHEMY_DATABASE_URI"] = (
+            "sqlite:///:memory:"  # Usa banco de dados em memória
+        )
+        app.config["TEMPLATES_FILE_PATH"] = "test_templates.json"
 
     # Define a chave secreta para segurança do CSRF e sessões
     app.secret_key = Config.SECRET_KEY

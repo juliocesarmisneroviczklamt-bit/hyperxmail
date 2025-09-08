@@ -6,6 +6,7 @@ import asyncio
 import json
 import os
 
+
 class SanitizationBugTest(unittest.TestCase):
     def setUp(self):
         self.app, self.socketio = create_app(testing=True)
@@ -18,7 +19,7 @@ class SanitizationBugTest(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
-    @patch('app.email_utils.aiosmtplib.SMTP')
+    @patch("app.email_utils.aiosmtplib.SMTP")
     def test_message_is_sanitized_end_to_end(self, mock_smtp_class):
         """
         Tests that the HTML message is correctly sanitized for XSS vulnerabilities
@@ -39,13 +40,13 @@ class SanitizationBugTest(unittest.TestCase):
         # Act
         # Call the function that contains the core logic directly
         await send_bulk_emails(
-            subject='Test Subject',
+            subject="Test Subject",
             message=malicious_payload,
-            manual_emails=['test@example.com'],
-            base_url='http://testserver/',
-            cc='',
-            bcc='',
-            attachments=[]
+            manual_emails=["test@example.com"],
+            base_url="http://testserver/",
+            cc="",
+            bcc="",
+            attachments=[],
         )
 
         # Assert
@@ -59,17 +60,17 @@ class SanitizationBugTest(unittest.TestCase):
         html_part = None
         if sent_msg.is_multipart():
             for part in sent_msg.walk():
-                if part.get_content_type() == 'text/html':
-                    html_part = part.get_payload(decode=True).decode('utf-8')
+                if part.get_content_type() == "text/html":
+                    html_part = part.get_payload(decode=True).decode("utf-8")
                     break
 
         self.assertIsNotNone(html_part, "HTML part of the email not found.")
 
         # 4. Assert that the sanitization worked as expected
         self.assertIn(expected_sanitized_body, html_part)
-        self.assertNotIn('<script>alert', html_part)
+        self.assertNotIn("<script>alert", html_part)
 
-    @patch('app.email_utils.aiosmtplib.SMTP')
+    @patch("app.email_utils.aiosmtplib.SMTP")
     def test_html_in_attribute_is_escaped(self, mock_smtp_class):
         """
         Tests that HTML inside an attribute (like 'title') is properly escaped.
@@ -85,13 +86,13 @@ class SanitizationBugTest(unittest.TestCase):
 
         # Act
         await send_bulk_emails(
-            subject='Test Subject',
+            subject="Test Subject",
             message=malicious_payload,
-            manual_emails=['test@example.com'],
-            base_url='http://testserver/',
-            cc='',
-            bcc='',
-            attachments=[]
+            manual_emails=["test@example.com"],
+            base_url="http://testserver/",
+            cc="",
+            bcc="",
+            attachments=[],
         )
 
         # Assert
@@ -99,8 +100,8 @@ class SanitizationBugTest(unittest.TestCase):
         html_part = None
         if sent_msg.is_multipart():
             for part in sent_msg.walk():
-                if part.get_content_type() == 'text/html':
-                    html_part = part.get_payload(decode=True).decode('utf-8')
+                if part.get_content_type() == "text/html":
+                    html_part = part.get_payload(decode=True).decode("utf-8")
                     break
 
         self.assertIsNotNone(html_part, "HTML part of the email not found.")
@@ -108,7 +109,7 @@ class SanitizationBugTest(unittest.TestCase):
         self.assertIn('title=""', html_part)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
 
 
@@ -119,7 +120,7 @@ class TemplateSavingBugTest(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         # Define a path for a temporary templates file and ensure it's clean
-        self.templates_file_path = self.app.config['TEMPLATES_FILE_PATH']
+        self.templates_file_path = self.app.config["TEMPLATES_FILE_PATH"]
         if os.path.exists(self.templates_file_path):
             os.remove(self.templates_file_path)
 
@@ -146,19 +147,21 @@ class TemplateSavingBugTest(unittest.TestCase):
         expected_content_fixed = "<p>Hello, <strong>World!</strong></p>"
 
         # Act: Post the new template to the /templates endpoint
-        response = self.client.post('/templates',
-                                     data=json.dumps({'name': template_name, 'content': html_content}),
-                                     content_type='application/json')
+        response = self.client.post(
+            "/templates",
+            data=json.dumps({"name": template_name, "content": html_content}),
+            content_type="application/json",
+        )
 
         # Assert: Check the response and the file content
         self.assertEqual(response.status_code, 201)
 
         # Verify the content of the saved file
-        with open(self.templates_file_path, 'r') as f:
+        with open(self.templates_file_path, "r") as f:
             templates = json.load(f)
 
         self.assertEqual(len(templates), 1)
-        self.assertEqual(templates[0]['name'], template_name)
+        self.assertEqual(templates[0]["name"], template_name)
 
         # This is the assertion that SHOULD pass after the fix.
-        self.assertEqual(templates[0]['content'], expected_content_fixed)
+        self.assertEqual(templates[0]["content"], expected_content_fixed)
