@@ -10,6 +10,7 @@ import logging
 import bleach
 from flask import jsonify, make_response, request, redirect, render_template
 from .email_utils import check_smtp_credentials, send_bulk_emails
+from .utils import sanitize_html
 import base64
 import os
 import json
@@ -241,7 +242,7 @@ def init_routes(app):
 
         data = request.get_json()
         subject = bleach.clean(data.get('subject', '')).strip()
-        message = data.get('message', '')
+        message = sanitize_html(data.get('message', ''))
         csv_content = data.get('csvContent', '')
         manual_emails = data.get('manualEmails', [])
 
