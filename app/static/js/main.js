@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': document.querySelector('input[name="csrf_token"]').value
+                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
                 },
                 body: JSON.stringify({ name: name.trim(), content: content })
             });
@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cc = document.getElementById('cc').value.trim();
         const cco = document.getElementById('cco').value.trim();
         const message = document.getElementById('message').value.trim();
-        const attachmentFiles = attachmentInput.files;
+        const attachmentFiles = document.getElementById('attachment-input').files;
         const csrfToken = document.querySelector('input[name="csrf_token"]').value;
 
         if (!subject) {
@@ -375,14 +375,14 @@ document.addEventListener('DOMContentLoaded', () => {
             attachments.push(...await Promise.all(filePromises));
         }
 
-        const payload = { 
-            subject: subject, 
-            cc: cc, 
-            bcc: cco, 
-            message: message, 
-            attachments: attachments, 
+        const payload = {
+            subject: subject,
+            cc: cc,
+            bcc: cco,
+            message: message,
+            attachments: attachments,
             csvContent: selectedCsvContent,
-            manualEmails: emails 
+            manualEmails: emails
         };
 
         try {
@@ -391,7 +391,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfToken
+                    // LINHA CORRIGIDA ABAIXO
+                    'X-CSRFToken': csrfToken
                 },
                 body: JSON.stringify(payload)
             });
@@ -408,7 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
             log(`Erro na conexão: ${error.message}`, 'error');
         } finally {
             button.disabled = false;
-            button.textContent = "ENVIAR SINAL";
+            button.textContent = "ENVIAR BROADCAST"; // Revertido para o texto original do botão
             progressBar.style.width = '0%';
             log("Processo concluído.");
         }
