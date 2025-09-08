@@ -19,7 +19,7 @@ def sanitize_html(html_content):
         html_content,
         tags=allowed_tags,
         attributes=allowed_attributes,
-        strip=True  # Strips disallowed tags instead of escaping them
+        strip=False  # Escapes disallowed tags instead of stripping them, which is safer.
     )
 
     return sanitized_content

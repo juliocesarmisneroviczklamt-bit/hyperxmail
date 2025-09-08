@@ -24,8 +24,8 @@ class SanitizationTestCase(unittest.TestCase):
         and passed to the email sending task.
         """
         malicious_payload = '<script>alert("XSS");</script><p>This is a <strong>safe</strong> message.</p>'
-        # bleach.clean with strip=True removes the tag but leaves the content. This is expected.
-        expected_sanitized_message = 'alert("XSS");<p>This is a <strong>safe</strong> message.</p>'
+        # With strip=False (the new default), bleach.clean escapes disallowed tags.
+        expected_sanitized_message = '&lt;script&gt;alert("XSS");&lt;/script&gt;<p>This is a <strong>safe</strong> message.</p>'
 
         # Action: Send a request to the /send_email endpoint
         response = self.client.post('/send_email',
